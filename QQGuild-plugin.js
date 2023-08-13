@@ -60,6 +60,7 @@ async function WS_Cfg(appID, BotCfg) {
 
     /** 机器人名称、头像 获取 */
     const bot = await BotCfg[appID].client.meApi.me()
+    QQGuild.BotCfg[appID].id = bot.data.id
     QQGuild.BotCfg[appID].name = bot.data.username
     QQGuild.BotCfg[appID].avatar = bot.data.avatar
 
@@ -127,7 +128,7 @@ function allMsg(msg, appID, mode, delMsg) {
 }
 
 /** 构建Yunzai的message */
-async function makeeMessage(msg) {
+async function makeeMessage(msg, appID) {
     let message = []
     /** raw_message部分还未完成... */
     let raw_message = ""
@@ -143,8 +144,10 @@ async function makeeMessage(msg) {
 
         for (const i of content) {
             if (i.startsWith("<@")) {
-                const atValue = i.slice(3, -1)
+                let atValue = i.slice(3, -1)
                 const name = at_name(atValue)
+                if (QQGuild.BotCfg[appID].id === atValue)
+                    atValue = Bot.uin
                 message.push({ type: "at", text: name, qq: atValue })
             } else if (i.startsWith("<emoji:")) {
                 const faceValue = i.slice(7, -1)
@@ -196,7 +199,7 @@ async function sendFriendMsg(data, appID) {
     let role = roles && (roles.includes("4") ? "owner" : roles.includes("2") ? "admin" : "member") || "member"
 
     /** 构建Yunzai的message */
-    let message = await makeeMessage(msg)
+    let message = await makeeMessage(msg, appID)
 
     /** 判断消息中是否@了机器人 */
     const atBot = msg.mentions?.find(mention => mention.bot) || false
