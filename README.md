@@ -11,7 +11,7 @@
     - `目前暂不清楚什么样的情况会被判定为url，基本的https和http已经完成替换...`
 - [ ] 将发送失败状态码和原因进行回复用户...
 
-#### 安装插件
+## 安装插件
 
 在`Yunzai-Bot`根目录执行，任选其一
 
@@ -25,7 +25,7 @@ Github：
 git clone --depth 1 https://github.com/Zyy955/QQGuild-plugin ./plugins/QQGuild-plugin && pnpm install -P
 ```
 
-#### 机器人指令配置
+## 机器人指令配置
 
 添加机器人：
 ```
@@ -41,7 +41,7 @@ git clone --depth 1 https://github.com/Zyy955/QQGuild-plugin ./plugins/QQGuild-p
 ```
 #QQ频道账号
 ```
-#### 使用例子
+## 使用例子
 
 是否沙盒：`是`
 
@@ -73,6 +73,13 @@ token：`abcdefghijklmnopqrstuvwxyz123456`
 ```
 #QQ频道解除私信
 ```
+
+## 更新
+```
+#QQ频道更新
+#QQ频道强制更新
+```
+
 
 ## 鸣谢
 
