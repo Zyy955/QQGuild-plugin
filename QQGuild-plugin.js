@@ -1,5 +1,10 @@
 import fs from "fs"
 import Yaml from "yaml"
+import imagemin from 'imagemin'
+import imageminJpegtran from 'imagemin-jpegtran'
+import imageminPngquant from 'imagemin-pngquant'
+import { execSync } from 'child_process'
+import { update } from '../other/update.js'
 import plugin from '../../lib/plugins/plugin.js'
 import fetch, { FormData, Blob } from "node-fetch"
 import PluginsLoader from "../../lib/plugins/loader.js"
@@ -16,9 +21,9 @@ let QQGuild = {
 let _path = process.cwd() + '/plugins/QQGuild-plugin'
 
 /** 加载配置到全局变量中... */
-const file = _path + "/config.yaml"
-if (fs.existsSync(file)) {
-    let config = Yaml.parse(fs.readFileSync(file, 'utf8'))
+const Cfgfile = _path + "/config.yaml"
+if (fs.existsSync(Cfgfile)) {
+    let config = Yaml.parse(fs.readFileSync(Cfgfile, 'utf8'))
     for (const id in config) {
         if (config[id].allMsg)
             config[id].intents = ['GUILD_MESSAGES', 'DIRECT_MESSAGE']
@@ -35,6 +40,7 @@ for (const appID in BotCfg) {
     logger.info(await WS_Cfg(appID, BotCfg))
 }
 
+/** 监听消息 */
 async function WS_Cfg(appID, BotCfg) {
     /** 创建 client */
     BotCfg[appID].client = createOpenAPI(BotCfg[appID])
@@ -59,6 +65,8 @@ async function WS_Cfg(appID, BotCfg) {
 
     /** 监听对应的消息事件 */
     async function MapPing(data, type, msgType, appID) {
+        if (data.msg.content === "#QQ频道解除私信")
+            return await Sendprivate(data, appID)
         if (data.eventType === type) {
             return allMsg(data.msg, appID, msgType, true)
         } else {
@@ -89,8 +97,13 @@ async function WS_Cfg(appID, BotCfg) {
 
 /** 收到消息打印日志 */
 function allMsg(msg, appID, mode, delMsg) {
-    const { author, guild_id, channel_id, content, message } = msg
+    const { author, guild_id, channel_id, content, attachments, message } = msg
     const user_name = author?.username || message.author.username
+
+    const allMsg = []
+    if (attachments)
+        for (const i of attachments) allMsg.push(`[图片：./data/image/${i.filename}]`)
+    if (content) allMsg.push(content)
 
     if (mode === "私信") {
         const guild = `[${mode}：${QQGuild.BotCfg[appID].name}-${appID}]`
@@ -98,7 +111,7 @@ function allMsg(msg, appID, mode, delMsg) {
             const user = `[用户：${message.author.id}] 撤回消息：${message.id}`
             logger.info(`QQGuild-plugin：${guild}${user}`)
         } else {
-            const user = `[用户：${user_name}-${author.id}] ${content}`
+            const user = `[用户：${user_name}-${author.id}] ${allMsg.join(' ')}`
             logger.info(`QQGuild-plugin：${guild}${user}`)
         }
     } else {
@@ -108,9 +121,70 @@ function allMsg(msg, appID, mode, delMsg) {
         } else {
             const guild_name = QQGuild.guilds?.[guild_id]?.name
             const channel_name = QQGuild.guilds?.[guild_id]?.channels[channel_id]
-            logger.info(`QQGuild-plugin：[${mode}：${guild_name}-${channel_name}][用户：${user_name}-${author.id}] ${content}`)
+            logger.info(`QQGuild-plugin：[${mode}：${guild_name}-${channel_name}][用户：${user_name}-${author.id}] ${allMsg.join(' ')}`)
         }
     }
+}
+
+/** 构建Yunzai的message */
+async function makeeMessage(msg) {
+    let message = []
+    /** raw_message部分还未完成... */
+    let raw_message = ""
+
+    /** at、表情、文本 */
+    if (msg.content) {
+        const content = msg?.content.match(/<@([^>]+)>|<emoji:([^>]+)>|[^<>]+/g)
+        /** 获取at成员的名称 */
+        let at_name = (i) => {
+            for (let name of msg.mentions) if (name.id === i)
+                return `@${name.username}`
+        }
+
+        for (const i of content) {
+            if (i.startsWith("<@")) {
+                const atValue = i.slice(3, -1)
+                const name = at_name(atValue)
+                message.push({ type: "at", text: name, qq: atValue })
+            } else if (i.startsWith("<emoji:")) {
+                const faceValue = i.slice(7, -1)
+                message.push({ type: "face", text: faceValue })
+            } else {
+                message.push({ type: "text", text: i })
+            }
+        }
+    }
+
+    /** 图片 动画表情 */
+    if (msg.attachments) {
+        for (const i of msg.attachments) {
+            /** 缓存图片至本地以供后续调用 */
+            const file = "./plugins/QQGuild-plugin/data/image/" + i.filename
+            if (!fs.existsSync(file)) {
+                const response = await fetch(`https://${i.url}`)
+                if (response.ok) {
+                    const buffer = await response.arrayBuffer()
+                    fs.writeFile(file, Buffer.from(buffer), (error) => {
+                        if (error)
+                            logger.error(`[QQGuild-plugin]：图片写入文件发生错误 https://${i.url} `, error)
+                        else
+                            logger.mark(`[QQGuild-plugin]：图片 https://${i.url} 下载完成`)
+                    })
+                } else
+                    logger.error(`[QQGuild-plugin]：下载图片失败 https://${i.url} `, response.statusText)
+            }
+
+            const image = {
+                type: "image",
+                file: i.filename,
+                url: `https://${i.url}`,
+                content_type: i.content_type
+            }
+            message.push(image)
+        }
+    }
+
+    return { message, raw_message }
 }
 
 /** 消息转换为Yunzai格式 */
@@ -202,71 +276,7 @@ async function sendFriendMsg(data, appID) {
     return e
 }
 
-/** 构建Yunzai的message */
-async function makeeMessage(msg) {
-    let message = []
-    /** raw_message部分还未完成... */
-    let raw_message = ""
-
-    /** at、表情、文本 */
-    if (msg.content) {
-        const content = msg?.content.match(/<@([^>]+)>|<emoji:([^>]+)>|[^<>]+/g)
-        /** 获取at成员的名称 */
-        let at_name = (i) => {
-            for (let name of msg.mentions) if (name.id === i)
-                return `@${name.username}`
-        }
-
-        for (const i of content) {
-            if (i.startsWith("<@")) {
-                const atValue = i.slice(3, -1)
-                const name = at_name(atValue)
-                message.push({ type: "at", text: name, qq: atValue })
-            } else if (i.startsWith("<emoji:")) {
-                const faceValue = i.slice(7, -1)
-                message.push({ type: "face", text: faceValue })
-            } else {
-                message.push({ type: "text", text: i })
-            }
-        }
-    }
-
-    /** 图片 动画表情 */
-    if (msg.attachments) {
-        for (const i of msg.attachments) {
-            /** 缓存图片至本地以供后续调用 */
-            const file = "./plugins/QQGuild-plugin/data/image/" + i.filename
-            if (!fs.existsSync(file)) {
-                const response = await fetch(`https://${i.url}`)
-                if (response.ok) {
-                    const buffer = await response.arrayBuffer()
-                    fs.writeFile(file, Buffer.from(buffer), (error) => {
-                        if (error) {
-                            console.error('写入文件时出错:', error)
-                        } else {
-                            console.log('图片下载并成功保存')
-                        }
-                    })
-                } else {
-                    console.error('下载图片失败:', response.statusText)
-                }
-            }
-
-            const image = {
-                type: "image",
-                file: i.filename,
-                url: `https://${i.url}`,
-                content_type: i.content_type
-            }
-            message.push(image)
-        }
-    }
-
-    return { message, raw_message }
-}
-
-
-/** 回复消息 将消息转成QQGuildApi格式 */
+/** 将消息转成QQGuildApi格式 */
 async function sendGroupMsg(data, msg, reference, appID) {
     /** https://bot.q.qq.com/wiki/develop/nodesdk/message/post_messages.html#messagetocreate */
 
@@ -316,9 +326,12 @@ async function sendGroupMsg(data, msg, reference, appID) {
     }
 
     /** 对url进行特殊处理，防止发送失败 */
-    const NewContent = content.replace(/https?:\/\/\S+/gms, match => {
-        return match.replace(/\./g, '_')
-    }).replace(/Object./g, 'Object_').replace(/\n\n$/m, '')
+    const NewContent = content.replace(
+        /https?:\/\/\S+|www\.\S+|\S+\.\S+/gms,
+        match => {
+            return match.replace(/[.:]/g, '_')
+        }
+    ).replace(/Object\./g, 'Object_').replace(/\n\n$/m, '')
 
     /** 为空禁止发送~ */
     if (NewContent === "") return false
@@ -327,10 +340,22 @@ async function sendGroupMsg(data, msg, reference, appID) {
     return await postMessage(data, NewContent, reference, appID)
 }
 
-/** 回复消息 */
-async function postMessage(datas, msg, reference, appID) {
-    const data = datas.msg
+/** 开始回复消息 */
+async function postMessage(msgBody, msg, reference, appID) {
+    const data = msgBody.msg
     let GroupMsg
+    let file = msg?.file
+
+    const guild_name = QQGuild.guilds[data.guild_id].name
+    const channel_name = QQGuild.guilds[data.guild_id].channels[data.channel_id]
+    const user_name = `[用户：${data.author.username}-${data.author.id}]`
+    const sceneMap = {
+        "DIRECT_MESSAGE_CREATE": "私信",
+        "MESSAGE_CREATE": "私域",
+        "AT_MESSAGE_CREATE": "公域"
+    }
+    let scene = sceneMap[msgBody.eventType] || "未知场景"
+
 
     /** 文本、at、表情 */
     if (typeof msg === "string") {
@@ -340,21 +365,19 @@ async function postMessage(datas, msg, reference, appID) {
         }
         /** 引用消息 */
         if (reference) {
-            const message_reference = {
+            const reference = {
                 message_id: data.id,
                 ignore_get_message_error: true
             }
-            GroupMsg.message_reference = message_reference
+            GroupMsg.message_reference = reference
         }
-
+        logger.info(`QQGuild-plugin：[回复-${scene}：${guild_name}-${channel_name}]${user_name} ${msg}`)
     } else {
-        /** 图片 */
-        let file = msg.file
         /** 如果存在url，则说明是下发的图片，需要进行读取本地缓存 */
+        let img
         if (/^(https|http)/.test(msg.url)) {
-            const img = `./plugins/QQGuild-plugin/data/image/${file}`
-            const base64 = Buffer.from(
-                fs.readFileSync(img)).toString('base64')
+            img = `./plugins/QQGuild-plugin/data/image/${file}`
+            const base64 = Buffer.from(fs.readFileSync(img)).toString('base64')
             file = base64
         } else if (file instanceof Uint8Array) {
             /** 转成字符串... */
@@ -364,14 +387,33 @@ async function postMessage(datas, msg, reference, appID) {
         GroupMsg = new FormData()
         GroupMsg.set("msg_id", data.id)
         GroupMsg.set("file_image", new Blob([Buffer.from(file.replace(/^base64:\/\//, ""), "base64")]))
+        logger.info(`QQGuild-plugin：[回复-${scene}：${guild_name}-${channel_name}]${user_name} 图片：${img || "base64://..."}`)
     }
 
     /** 响应 */
     let response
-    if (datas.eventType === "DIRECT_MESSAGE_CREATE") {
-        response = await BotCfg[appID].client.directMessageApi.postDirectMessage(data.guild_id, GroupMsg)
-    } else {
-        response = await BotCfg[appID].client.messageApi.postMessage(data.channel_id, GroupMsg)
+    try {
+        if (msgBody.eventType === "DIRECT_MESSAGE_CREATE") {
+            response = await BotCfg[appID].client.directMessageApi.postDirectMessage(data.guild_id, GroupMsg)
+        } else {
+            response = await BotCfg[appID].client.messageApi.postMessage(data.channel_id, GroupMsg)
+        }
+    } catch (error) {
+        /** 图片过大发送失败，进行压缩重新发送... */
+        if (error.code === 304020) {
+            logger.error("QQGuild-plugin：...正在进行压缩...")
+            const base64 = file.replace(/^base64:\/\//, "")
+            if (base64) {
+                const newbase64 = await imagemin.buffer(Buffer.from(base64, 'base64'), {
+                    plugins: [imageminJpegtran(), imageminPngquant()]
+                })
+                logger.mark("QQGuild-plugin：压缩完成...正在重新发送...")
+                GroupMsg.set("file_image", new Blob([Buffer.from(newbase64)]))
+                response = await BotCfg[appID].client.messageApi.postMessage(data.channel_id, GroupMsg)
+            }
+        } else {
+            return logger.error("QQGuild-plugin：", error)
+        }
     }
 
     /** 返回消息id给撤回用？ */
@@ -381,36 +423,25 @@ async function postMessage(datas, msg, reference, appID) {
         time: parseInt(Date.parse(response.data.timestamp) / 1000),
         message_id: response.data.id
     }
-
-
-    /*  对过大的图片进行缩小再次重新发送
-        const data = "base64://${base64}" // 替换为实际的原始数据
-        const base64Encoded = data.split("base64://")[1]
-        if (base64Encoded) {
-            const size = Buffer.from(base64Encoded, "base64").length
-        } */
 }
 
-
-
-
-/* 
- 预留方法 解除私信限制...
-const addMsg = {
-    source_guild_id: data.msg.guild_id,
-    recipient_id: data.msg.author.id
+/** 发送主动消息 解除私信限制 */
+async function Sendprivate(data, appID) {
+    const addMsg = {
+        source_guild_id: data.msg.guild_id,
+        recipient_id: data.msg.author.id
+    }
+    const add_data = await BotCfg[appID].client.directMessageApi.createDirectMessage(addMsg)
+    await BotCfg[appID].client.directMessageApi
+        .postDirectMessage(add_data.data.guild_id, { content: " QQGuild-plugin：你好~" })
 }
-const add_data = await BotCfg[appID].client.directMessageApi.createDirectMessage(addMsg)
-const res = await BotCfg[appID].client.directMessageApi.postDirectMessage(add_data.data.guild_id, { content: "test" })
- */
-
 
 
 export class Guild extends plugin {
     constructor() {
         super({
             name: "QQ频道插件",
-            priority: -9999999,
+            priority: 1,
             rule: [
                 {
                     reg: /^#QQ频道设置.*$/gi,
@@ -421,16 +452,19 @@ export class Guild extends plugin {
                     reg: /^#QQ频道账号$/gi,
                     fnc: "QQGuildAccount",
                     permission: "master"
+                },
+                {
+                    reg: /^#QQ频道(强制)?更新$/gi,
+                    fnc: "update",
+                    permission: "master"
                 }
             ]
         })
     }
 
     async QQGuildCfg(e) {
-        const cmd = e.msg
-            .replace(/^#QQ频道设置/gi, "")
-            .replace(/：/g, ":")
-            .trim().split(':')
+        const cmd = e.msg.replace(/^#QQ频道设置/gi, "")
+            .replace(/：/g, ":").trim().split(':')
 
         if (!/^1\d{8}$/.test(cmd[2]))
             return e.reply("appID 错误！")
@@ -438,8 +472,9 @@ export class Guild extends plugin {
         if (!/^[0-9a-zA-Z]{32}$/.test(cmd[3]))
             return e.reply("token 错误！")
 
-        if (!fs.existsSync(file)) {
-            const cfg = {
+        let cfg
+        if (!fs.existsSync(Cfgfile)) {
+            cfg = {
                 [cmd[2]]: {
                     appID: cmd[2],
                     token: cmd[3],
@@ -447,21 +482,11 @@ export class Guild extends plugin {
                     allMsg: cmd[1] === "1"
                 }
             }
-            /** 先存入 继续修改~ */
-            fs.writeFileSync(file, Yaml.stringify(cfg), 'utf8')
-            if (cfg[cmd[2]].allMsg)
-                cfg[cmd[2]].intents = ['GUILD_MESSAGES', 'DIRECT_MESSAGE']
-            else
-                cfg[cmd[2]].intents = ['PUBLIC_GUILD_MESSAGES', 'DIRECT_MESSAGE']
-
-            QQGuild.BotCfg[cmd[2]] = cfg[cmd[2]]
-            const msg = await WS_Cfg(cmd[2], QQGuild.BotCfg)
-            return e.reply(msg)
         } else {
-            const cfg = Yaml.parse(fs.readFileSync(file, 'utf8'))
+            cfg = Yaml.parse(fs.readFileSync(Cfgfile, 'utf8'))
             if (cfg[cmd[2]]) {
                 delete cfg[cmd[2]]
-                fs.writeFileSync(file, Yaml.stringify(cfg), 'utf8')
+                fs.writeFileSync(Cfgfile, Yaml.stringify(cfg), 'utf8')
                 return e.reply(`Bot：${cmd[2]} 删除成功...重启后生效...`)
             } else {
                 cfg[cmd[2]] = {
@@ -470,23 +495,22 @@ export class Guild extends plugin {
                     sandbox: cmd[0] === "1",
                     allMsg: cmd[1] === "1"
                 }
-                /** 先存入 继续修改~ */
-                fs.writeFileSync(file, Yaml.stringify(cfg), 'utf8')
-                if (cfg[cmd[2]].allMsg)
-                    cfg[cmd[2]].intents = ['GUILD_MESSAGES', 'DIRECT_MESSAGE']
-                else
-                    cfg[cmd[2]].intents = ['PUBLIC_GUILD_MESSAGES', 'DIRECT_MESSAGE']
-
-                QQGuild.BotCfg[cmd[2]] = cfg[cmd[2]]
-                const msg = await WS_Cfg(cmd[2], QQGuild.BotCfg)
-                return e.reply(msg)
             }
         }
+        /** 先存入 继续修改~ */
+        fs.writeFileSync(Cfgfile, Yaml.stringify(cfg), 'utf8')
+        if (cfg[cmd[2]].allMsg)
+            cfg[cmd[2]].intents = ['GUILD_MESSAGES', 'DIRECT_MESSAGE']
+        else
+            cfg[cmd[2]].intents = ['PUBLIC_GUILD_MESSAGES', 'DIRECT_MESSAGE']
+        QQGuild.BotCfg[cmd[2]] = cfg[cmd[2]]
+        const msg = await WS_Cfg(cmd[2], QQGuild.BotCfg)
+        return e.reply(msg)
     }
 
     async QQGuildAccount(e) {
         if (e.sub_type === "friend") {
-            const config = Yaml.parse(fs.readFileSync(file, 'utf8'))
+            const config = Yaml.parse(fs.readFileSync(Cfgfile, 'utf8'))
             const msg = []
             for (const i in config) {
                 const cfg = [
@@ -500,5 +524,20 @@ export class Guild extends plugin {
             return e.reply(`共${msg.length}个账号：\n${msg.join('\n')}`)
         } else
             return e.reply("请私聊查看")
+    }
+
+    async update(e) {
+        let new_update = new update()
+        new_update.e = e
+        new_update.reply = this.reply
+        const name = "QQGuild-plugin"
+        if (new_update.getPlugin(name)) {
+            if (this.e.msg.includes('强制'))
+                execSync('git reset --hard', { cwd: `${process.cwd()}/plugins/${name}/` })
+            await new_update.runUpdate(name)
+            if (new_update.isUp)
+                setTimeout(() => new_update.restart(), 2000)
+        }
+        return
     }
 }

@@ -1,11 +1,3 @@
-<!--
- * @Author: Zyy955 1072411694@qq.com
- * @Date: 2023-08-12 18:20:58
- * @LastEditors: Zyy955 1072411694@qq.com
- * @LastEditTime: 2023-08-12 18:58:14
- * @FilePath: \Miao-Yunzai-new\plugins\QQGuild-plugin\README.md
- * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
--->
 使用[NodeJS-SDK](https://github.com/tencent-connect/bot-node-sdk)进行连接
 
 咕咕咕~：
@@ -14,8 +6,8 @@
 - [√] 引用消息
 - [ ] 消息转发 
     - `插件部分已完成...需要更改主体`
-- [ ] 根据api返回的状态码对图片进行缩放后重新发送图片...
-- [ ] 替换url中成为链接的字符，使其可以正常发送... 
+- [√] 根据api返回的状态码对图片进行缩放后重新发送图片...
+- [√] 替换url中成为链接的字符，使其可以正常发送... 
     - `目前暂不清楚什么样的情况会被判定为url，基本的https和http已经完成替换...`
 - [ ] 将发送失败状态码和原因进行回复用户...
 
@@ -73,6 +65,13 @@ token：`abcdefghijklmnopqrstuvwxyz123456`
 查看机器人：
 ```
 #QQ频道账号
+```
+
+## 解除频道私信
+
+解除私信3条后等待回复问题...
+```
+#QQ频道解除私信
 ```
 
 ## 鸣谢
