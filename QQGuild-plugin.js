@@ -42,6 +42,8 @@ for (const appID in BotCfg) {
 
 /** 监听消息 */
 async function WS_Cfg(appID, BotCfg) {
+    /** 劫持转发原始方法 */
+    Bot.oldInfo = Bot.getGroupMemberInfo
     /** 创建 client */
     BotCfg[appID].client = createOpenAPI(BotCfg[appID])
     /** 创建 websocket 连接 */
@@ -255,7 +257,6 @@ async function sendFriendMsg(data, appID) {
         atme: atBot,
         member,
         model: "Yunzai-Bot",
-        QQGuild: true,
         group: {
             pickMember: (id) => {
                 if (id === msg.author.id) {
@@ -267,6 +268,35 @@ async function sendFriendMsg(data, appID) {
             },
             sendMsg: async (reply, reference) => {
                 return await sendGroupMsg(data, reply, reference, appID)
+            },
+            makeForwardMsg: async (forwardMsg) => {
+                const messages = {}
+                const newmsg = []
+                const content = data.msg.content
+                if (forwardMsg?.[1]?.message?.data?.type === "test") {
+                    newmsg.push({ type: "forward", text: forwardMsg[0].message })
+                    newmsg.push(...forwardMsg[1].message.msg)
+                } else if (/^#.*日志$/.test(content)) {
+                    let splitMsg
+                    for (const i of forwardMsg) {
+                        splitMsg = i.message.split("\n[").map(element => {
+                            if (element.length > 250)
+                                element = element.substring(0, 150) + "日志过长..."
+                            return { type: "forward", text: `[${element.trim()}\n` }
+                        })
+                    }
+                    newmsg.push(...splitMsg.slice(0, 40))
+                } else {
+                    for (const msgA of forwardMsg) {
+                        const msgB = msgA?.message || msgA
+                        if (Array.isArray(msgB)) newmsg.push(...forward_array(msgB))
+                        if (typeof msgB === "object") newmsg.push(...forward_object(msgB))
+                        if (typeof msgB === "string") newmsg.push(...forward_string(msgB))
+                    }
+                }
+                messages.msg = newmsg
+                messages.data = { type: "test", text: "forward" }
+                return messages
             }
         },
         recall: () => {
@@ -282,19 +312,83 @@ async function sendFriendMsg(data, appID) {
                 .replace(/\<@!(\d+)>/g, "{at:$1}")
         }
     }
+
+    /** 根据传入的group_id长度决定使用原方法还是自定义方法 */
+    Bot.getGroupMemberInfo = async (group_id, id) => {
+        if (group_id.toString().length > 10) {
+            return {
+                group_id: group_id,
+                user_id: id,
+                nickname: "QQGuild-Bot",
+                card: "",
+                sex: "female",
+                age: 6,
+                join_time: "",
+                last_sent_time: "",
+                level: 1,
+                role: "member",
+                title: "",
+                title_expire_time: "",
+                shutup_time: 0,
+                update_time: "",
+                area: "南极洲",
+                rank: "潜水",
+            }
+        } else {
+            return Bot.oldInfo(group_id, id)
+        }
+    }
+
     return e
 }
 
+/** 判断转发 数组 */
+function forward_array(Msg) {
+    const newmsg = []
+    for (const msgB of Msg) {
+        if (typeof msgB === "object") newmsg.push(...forward_object(msgB))
+        else if (typeof msgB === "string") newmsg.push(...forward_string(msgB))
+    }
+    return newmsg
+}
+
+/** 判断转发 对象 */
+function forward_object(Msg) {
+    const newmsg = []
+    if (typeof Msg === "object") {
+        for (const msgA in Msg) {
+            if (typeof Msg === "object" && typeof Msg[msgA] === "string") {
+                newmsg.push(Msg)
+                break
+            }
+        }
+    } else {
+        for (const msgB of Msg) {
+            if (typeof msgB === "object") newmsg.push(msgB)
+            else if (typeof msgB === "string") newmsg.push(...forward_string(msgB))
+        }
+    }
+    return newmsg
+}
+
+/** 判断转发 字符串 */
+function forward_string(Msg) {
+    return [{ type: "forward", text: Msg }]
+}
+
+
 /** 将消息转成QQGuildApi格式 */
-async function sendGroupMsg(data, msg, reference, appID) {
+async function sendGroupMsg(data, allMsg, reference, appID) {
     /** https://bot.q.qq.com/wiki/develop/nodesdk/message/post_messages.html#messagetocreate */
-
     let newMsg = []
-    let content = ""
-
-    /** 将格式统一 */
-    if (Array.isArray(msg)) {
-        newMsg = [].concat(...msg.map(i => (
+    /** 将格式统一为对象 随后进行转换成api格式 */
+    if (allMsg?.[1]?.data?.type === "test") {
+        newMsg.push({ type: "forward", text: allMsg[0] })
+        newMsg.push(...allMsg[1].msg)
+    } else if (allMsg?.data?.type === "test") {
+        newMsg.push(...allMsg.msg)
+    } else if (Array.isArray(allMsg)) {
+        newMsg = [].concat(...allMsg.map(i => (
             typeof i === "string" ? [{ type: "text", text: i }] :
                 Array.isArray(i) ? [].concat(...i.map(format => (
                     typeof format === "string" ? [{ type: "text", text: format }] :
@@ -302,61 +396,59 @@ async function sendGroupMsg(data, msg, reference, appID) {
                 ))) :
                     typeof i === "object" && i !== null ? [i] : []
         )))
-        let special = false
-        if (newMsg[0].text.includes("日志]")) {
-            const splitMsg = newMsg[0].text.split("\n[").map(element => {
-                if (element.length > 250)
-                    element = element.substring(0, 150) + "日志过长..."
-                return { type: "text", text: `[${element.trim()}\n` }
-            })
-            newMsg = splitMsg.slice(0, 40)
-        } else {
-            const regex = /(表情列表|使用命令说明|抽卡纪录)/
-            newMsg.map(msg => { if (regex.test(msg.text)) special = true })
-        }
-
-        newMsg.forEach(msg => {
-            switch (msg.type) {
-                case "text":
-                    special ? content += `${msg.text}\n` : content += msg.text
-                    break
-                case "image":
-                    /** 图片直接发送~ */
-                    postMessage(data, msg, reference, appID)
-                    break
-                case "face":
-                    content += `<emoji:${msg.text}>`
-                    break
-                case "at":
-                    /** 加个判断，由于yunzai的reply中使用了Number对用户id进行处理，频道id过长导致id不准确 */
-                    if (msg.text === data.msg.author.username)
-                        content += `<@${data.msg.author.id}>`
-                    else
-                        content += `<@${msg.qq}>`
-                    break
-                default:
-                    content += msg.text
-            }
-        })
-    } else if (typeof msg === "object") {
-        /** 图片直接发送~ */
-        postMessage(data, msg, reference, appID)
+    } else if (typeof allMsg === "object") {
+        newMsg.push(allMsg)
     } else {
-        /** 是字符串直接赋值即可~ */
-        content += msg
+        newMsg.push({ type: "text", text: allMsg })
     }
+
+    /** 处理AT 表情 文本 */
+    let content = apiMsg(data, allMsg, reference, appID, newMsg)
     const NewContent = allurl(content)
-
-    /** 为空禁止发送~ */
     if (NewContent === "") return false
-
-    /** 处理完毕发送... */
     return await postMessage(data, NewContent, reference, appID)
 }
 
+/** 转为api格式 */
+function apiMsg(data, msgs, reference, appID, newMsg) {
+    let content = ""
+    newMsg.forEach(i => {
+        switch (i.type) {
+            case "text":
+                content += i.text
+                break
+            case "image":
+                /** 图片直接发送~ */
+                postMessage(data, i, reference, appID)
+                break
+            case "face":
+                content += `<emoji:${i.text}>`
+                break
+            case "at":
+                /** 加个判断，由于yunzai的reply中使用了Number对用户id进行处理，频道id过长导致id不准确 */
+                if (i.text === data.msg.author.username)
+                    content += `<@${data.msg.author.id}>`
+                else if (i.qq === 0 || i.qq) {
+                    content += `<@${i.id}>`
+                } else {
+                    content += `<@${i.qq}>`
+                }
+                break
+            case "forward":
+                content += `${i.text}\n\n`
+                break
+            default:
+                content += i.text
+                break
+        }
+    })
+    return content.replace(/\n{1,3}$/g, '')
+}
+
+
 /** 对url进行特殊处理，防止发送失败 */
 function allurl(content) {
-    const commonDomains = {
+    const urlregex = {
         'www.': 'www_',
         '.com': '_com',
         '.net': '_net',
@@ -376,11 +468,10 @@ function allurl(content) {
         'https://': 'https_',
         'http://': 'http_'
     }
-    const NewContent = content.replace(
-        new RegExp(Object.keys(commonDomains).join('|'), 'g'),
-        matched => commonDomains[matched]
-    ).replace(/\n\n$/m, '')
-    return NewContent
+
+    const regex = new RegExp(Object.keys(urlregex)
+        .map(domain => `(?:${domain.replace('.', '\\.')})`).join('|'), 'g')
+    return content.replace(regex, match => urlregex[match])
 }
 
 /** 开始回复消息 */
