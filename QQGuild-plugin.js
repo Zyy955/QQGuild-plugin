@@ -302,11 +302,23 @@ async function sendGroupMsg(data, msg, reference, appID) {
                 ))) :
                     typeof i === "object" && i !== null ? [i] : []
         )))
+        let special = false
+        if (newMsg[0].text.includes("日志]")) {
+            const splitMsg = newMsg[0].text.split("\n[").map(element => {
+                if (element.length > 250)
+                    element = element.substring(0, 150) + "日志过长..."
+                return { type: "text", text: `[${element.trim()}\n` }
+            })
+            newMsg = splitMsg.slice(0, 40)
+        } else {
+            const regex = /(表情列表|使用命令说明|抽卡纪录)/
+            newMsg.map(msg => { if (regex.test(msg.text)) special = true })
+        }
 
         newMsg.forEach(msg => {
             switch (msg.type) {
                 case "text":
-                    content += msg.text
+                    special ? content += `${msg.text}\n` : content += msg.text
                     break
                 case "image":
                     /** 图片直接发送~ */
@@ -333,20 +345,42 @@ async function sendGroupMsg(data, msg, reference, appID) {
         /** 是字符串直接赋值即可~ */
         content += msg
     }
-
-    /** 对url进行特殊处理，防止发送失败 */
-    const NewContent = content.replace(
-        /https?:\/\/\S+|www\.\S+|\S+\.\S+/gms,
-        match => {
-            return match.replace(/[.:]/g, '_')
-        }
-    ).replace(/Object\./g, 'Object_').replace(/\n\n$/m, '')
+    const NewContent = allurl(content)
 
     /** 为空禁止发送~ */
     if (NewContent === "") return false
 
     /** 处理完毕发送... */
     return await postMessage(data, NewContent, reference, appID)
+}
+
+/** 对url进行特殊处理，防止发送失败 */
+function allurl(content) {
+    const commonDomains = {
+        'www.': 'www_',
+        '.com': '_com',
+        '.net': '_net',
+        '.org': '_org',
+        '.gov': '_gov',
+        '.edu': '_edu',
+        '.co': '_co',
+        '.io': '_io',
+        '.xyz': '_xyz',
+        '.info': '_info',
+        '.tech': '_tech',
+        '.store': '_store',
+        '.app': '_app',
+        '.blog': '_blog',
+        '.design': '_design',
+        '.online': '_online',
+        'https://': 'https_',
+        'http://': 'http_'
+    }
+    const NewContent = content.replace(
+        new RegExp(Object.keys(commonDomains).join('|'), 'g'),
+        matched => commonDomains[matched]
+    ).replace(/\n\n$/m, '')
+    return NewContent
 }
 
 /** 开始回复消息 */
