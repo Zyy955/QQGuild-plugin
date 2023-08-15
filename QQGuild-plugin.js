@@ -306,10 +306,12 @@ async function sendFriendMsg(data, appID) {
             return await sendGroupMsg(data, reply, reference, appID)
         },
         toString: () => {
-            return msg.content
+            const NewMsg = msg?.content || msg?.attachments?.[0]?.filename
+            return NewMsg
                 .replace(new RegExp(`\\<@!${QQGuild.BotCfg[appID].id}>`, "g"), `{at:${Bot.uin}}`)
                 .replace(/\<emoji:(\d+)>/g, "{face:$1}")
                 .replace(/\<@!(\d+)>/g, "{at:$1}")
+                .replace(/\{([\w-]+)\}\.\w*/, '{image:$1}')
         }
     }
 
