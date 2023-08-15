@@ -257,6 +257,17 @@ async function sendFriendMsg(data, appID) {
         atme: atBot,
         member,
         model: "Yunzai-Bot",
+        friend: {
+            sendMsg: async (reply, reference) => {
+                return await sendGroupMsg(data, reply, reference, appID)
+            },
+            recallMsg: (msg_id) => {
+                return BotCfg[appID].client.messageApi.deleteMessage(msg.channel_id, msg_id, false)
+            },
+            makeForwardMsg: async (forwardMsg) => {
+                return await e.group.makeForwardMsg(forwardMsg)
+            }
+        },
         group: {
             pickMember: (id) => {
                 if (id === msg.author.id) {
@@ -482,16 +493,22 @@ async function postMessage(msgBody, msg, reference, appID) {
     let GroupMsg
     let file = msg?.file
 
-    const guild_name = QQGuild.guilds[data.guild_id].name
-    const channel_name = QQGuild.guilds[data.guild_id].channels[data.channel_id]
-    const user_name = `[用户：${data.author.username}-${data.author.id}]`
     const sceneMap = {
         "DIRECT_MESSAGE_CREATE": "私信",
         "MESSAGE_CREATE": "私域",
         "AT_MESSAGE_CREATE": "公域"
     }
+    let reply
     let scene = sceneMap[msgBody.eventType] || "未知场景"
+    const user_name = `[用户：${data.author.username}-${data.author.id}]`
 
+    if (scene === "私信") {
+        reply = `[回复-${scene}：${data.guild_id}-${data.guild_id}]${user_name}`
+    } else {
+        const guild_name = QQGuild.guilds[data.guild_id].name
+        const channel_name = QQGuild.guilds[data.guild_id].channels[data.channel_id]
+        reply = `[回复-${scene}：${guild_name}-${channel_name}]${user_name}`
+    }
 
     /** 文本、at、表情 */
     if (typeof msg === "string") {
@@ -507,7 +524,10 @@ async function postMessage(msgBody, msg, reference, appID) {
             }
             GroupMsg.message_reference = reference
         }
-        logger.info(`QQGuild-plugin：[回复-${scene}：${guild_name}-${channel_name}]${user_name} ${msg}`)
+        if (scene === "私信")
+            logger.info(`QQGuild-plugin：${reply} ${msg}`)
+        else
+            logger.info(`QQGuild-plugin：${reply} ${msg}`)
     } else {
         /** 如果存在url，则说明是下发的图片，需要进行读取本地缓存 */
         let img
@@ -523,7 +543,7 @@ async function postMessage(msgBody, msg, reference, appID) {
         GroupMsg = new FormData()
         GroupMsg.set("msg_id", data.id)
         GroupMsg.set("file_image", new Blob([Buffer.from(file.replace(/^base64:\/\//, ""), "base64")]))
-        logger.info(`QQGuild-plugin：[回复-${scene}：${guild_name}-${channel_name}]${user_name} 图片：${img || "base64://..."}`)
+        logger.info(`QQGuild-plugin：${reply} 图片：${img || "base64://..."}`)
     }
 
     /** 响应 */
