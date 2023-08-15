@@ -1,14 +1,14 @@
 import fs from "fs"
 import Yaml from "yaml"
-import imagemin from 'imagemin'
-import imageminJpegtran from 'imagemin-jpegtran'
-import imageminPngquant from 'imagemin-pngquant'
-import { execSync } from 'child_process'
-import { update } from '../other/update.js'
-import plugin from '../../lib/plugins/plugin.js'
+import imagemin from "imagemin"
+import { createInterface } from "readline"
+import { update } from "../other/update.js"
+import imageminJpegtran from "imagemin-jpegtran"
+import imageminPngquant from "imagemin-pngquant"
+import plugin from "../../lib/plugins/plugin.js"
 import fetch, { FormData, Blob } from "node-fetch"
 import PluginsLoader from "../../lib/plugins/loader.js"
-import { createOpenAPI, createWebsocket } from 'qq-guild-bot'
+import { createOpenAPI, createWebsocket } from "qq-guild-bot"
 
 logger.info("QQGuild-plugin初始化...")
 logger.info("https://github.com/Zyy955/QQGuild-plugin")
@@ -18,7 +18,7 @@ let QQGuild = {
     guilds: {},
     BotCfg: {}
 }
-let _path = process.cwd() + '/plugins/QQGuild-plugin'
+let _path = process.cwd() + "/plugins/QQGuild-plugin"
 
 /** 加载配置到全局变量中... */
 const Cfgfile = _path + "/config.yaml"
@@ -37,7 +37,7 @@ const BotCfg = QQGuild.BotCfg
 
 /** 创建对应的机器人配置 */
 for (const appID in BotCfg) {
-    logger.info(await WS_Cfg(appID, BotCfg))
+    logger.mark(logger.green(await WS_Cfg(appID, BotCfg)))
 }
 
 /** 监听消息 */
@@ -600,7 +600,7 @@ export class Guild extends plugin {
             priority: 1,
             rule: [
                 {
-                    reg: /^#QQ频道设置.*$/gi,
+                    reg: /^#QQ频道设置.+$/gi,
                     fnc: "QQGuildCfg",
                     permission: "master"
                 },
@@ -619,48 +619,7 @@ export class Guild extends plugin {
     }
 
     async QQGuildCfg(e) {
-        const cmd = e.msg.replace(/^#QQ频道设置/gi, "")
-            .replace(/：/g, ":").trim().split(':')
-
-        if (!/^1\d{8}$/.test(cmd[2]))
-            return e.reply("appID 错误！")
-
-        if (!/^[0-9a-zA-Z]{32}$/.test(cmd[3]))
-            return e.reply("token 错误！")
-
-        let cfg
-        if (!fs.existsSync(Cfgfile)) {
-            cfg = {
-                [cmd[2]]: {
-                    appID: cmd[2],
-                    token: cmd[3],
-                    sandbox: cmd[0] === "1",
-                    allMsg: cmd[1] === "1"
-                }
-            }
-        } else {
-            cfg = Yaml.parse(fs.readFileSync(Cfgfile, 'utf8'))
-            if (cfg[cmd[2]]) {
-                delete cfg[cmd[2]]
-                fs.writeFileSync(Cfgfile, Yaml.stringify(cfg), 'utf8')
-                return e.reply(`Bot：${cmd[2]} 删除成功...重启后生效...`)
-            } else {
-                cfg[cmd[2]] = {
-                    appID: cmd[2],
-                    token: cmd[3],
-                    sandbox: cmd[0] === "1",
-                    allMsg: cmd[1] === "1"
-                }
-            }
-        }
-        /** 先存入 继续修改~ */
-        fs.writeFileSync(Cfgfile, Yaml.stringify(cfg), 'utf8')
-        if (cfg[cmd[2]].allMsg)
-            cfg[cmd[2]].intents = ['GUILD_MESSAGES', 'DIRECT_MESSAGE']
-        else
-            cfg[cmd[2]].intents = ['PUBLIC_GUILD_MESSAGES', 'DIRECT_MESSAGE']
-        QQGuild.BotCfg[cmd[2]] = cfg[cmd[2]]
-        const msg = await WS_Cfg(cmd[2], QQGuild.BotCfg)
+        const msg = await addBot(e)
         return e.reply(msg)
     }
 
@@ -696,4 +655,77 @@ export class Guild extends plugin {
         }
         return
     }
+}
+
+/** 添加Bot */
+async function addBot(e) {
+    const cmd = e.msg.replace(/^#QQ频道设置/gi, "")
+        .replace(/：/g, ":").trim().split(':')
+    // console.log(cmd)
+
+    if (!/^1\d{8}$/.test(cmd[2]))
+        return "appID 错误！"
+
+    if (!/^[0-9a-zA-Z]{32}$/.test(cmd[3]))
+        return "token 错误！"
+
+    let cfg
+    if (!fs.existsSync(Cfgfile)) {
+        cfg = {
+            [cmd[2]]: {
+                appID: cmd[2],
+                token: cmd[3],
+                sandbox: cmd[0] === "1",
+                allMsg: cmd[1] === "1"
+            }
+        }
+    } else {
+        cfg = Yaml.parse(fs.readFileSync(Cfgfile, 'utf8'))
+        if (cfg[cmd[2]]) {
+            delete cfg[cmd[2]]
+            fs.writeFileSync(Cfgfile, Yaml.stringify(cfg), 'utf8')
+            return `Bot：${cmd[2]} 删除成功...重启后生效...`
+        } else {
+            cfg[cmd[2]] = {
+                appID: cmd[2],
+                token: cmd[3],
+                sandbox: cmd[0] === "1",
+                allMsg: cmd[1] === "1"
+            }
+        }
+    }
+    /** 先存入 继续修改~ */
+    fs.writeFileSync(Cfgfile, Yaml.stringify(cfg), 'utf8')
+    if (cfg[cmd[2]].allMsg)
+        cfg[cmd[2]].intents = ['GUILD_MESSAGES', 'DIRECT_MESSAGE']
+    else
+        cfg[cmd[2]].intents = ['PUBLIC_GUILD_MESSAGES', 'DIRECT_MESSAGE']
+    QQGuild.BotCfg[cmd[2]] = cfg[cmd[2]]
+    const msg = await WS_Cfg(cmd[2], QQGuild.BotCfg)
+    return msg
+}
+
+/** 监听控制台输入 */
+const rl = createInterface({
+    input: process.stdin,
+    output: process.stdout
+})
+
+rl.on('SIGINT', () => {
+    rl.close()
+    process.exit()
+})
+
+getInput()
+function getInput() {
+    rl.question('', async (input) => {
+        const msg = input.trim()
+        if (/#QQ频道设置.+/gi.test(msg)) {
+            const e = {
+                msg: msg
+            }
+            logger.mark(logger.green(await addBot(e)))
+        }
+        getInput()
+    })
 }
