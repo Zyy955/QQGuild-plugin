@@ -284,28 +284,39 @@ async function sendFriendMsg(data, appID) {
                 const messages = {}
                 const newmsg = []
                 const content = data.msg.content
-                if (forwardMsg?.[1]?.message?.data?.type === "test") {
-                    newmsg.push({ type: "forward", text: forwardMsg[0].message })
-                    newmsg.push(...forwardMsg[1].message.msg)
-                } else if (/^#.*日志$/.test(content)) {
-                    let splitMsg
-                    for (const i of forwardMsg) {
-                        splitMsg = i.message.split("\n[").map(element => {
-                            if (element.length > 250)
-                                element = element.substring(0, 150) + "日志过长..."
-                            return { type: "forward", text: `[${element.trim()}\n` }
-                        })
-                    }
-                    newmsg.push(...splitMsg.slice(0, 40))
-                } else {
-                    for (const msgA of forwardMsg) {
-                        const msgB = msgA?.message || msgA
-                        if (Array.isArray(msgB)) newmsg.push(...forward_array(msgB))
-                        if (typeof msgB === "object") newmsg.push(...forward_object(msgB))
-                        if (typeof msgB === "string") newmsg.push(...forward_string(msgB))
+
+                /** 针对无限套娃的转发进行处理 */
+                for (const i_msg of forwardMsg) {
+                    /** message -> 对象 -> data.type=test ->套娃转发 */
+                    const formsg = i_msg?.message
+                    if (formsg && typeof formsg === "object") {
+                        /** 套娃转发 */
+                        if (formsg?.data?.type === "test") {
+                            newmsg.push(...formsg.msg)
+                        } else {
+                            /** 普通对象 图片 文件 at */
+                            newmsg.push(formsg)
+                        }
+                    } else {
+                        /** 日志特殊处理 */
+                        if (/^#.*日志$/.test(content)) {
+                            let splitMsg
+                            for (const i of forwardMsg) {
+                                splitMsg = i.message.split("\n[").map(element => {
+                                    if (element.length > 250)
+                                        element = element.substring(0, 150) + "日志过长..."
+                                    return { type: "forward", text: `[${element.trim()}\n` }
+                                })
+                            }
+                            newmsg.push(...splitMsg.slice(0, 40))
+                        } else {
+                            /** 正常文本 */
+                            newmsg.push({ type: "forward", text: formsg })
+                        }
                     }
                 }
-                messages.msg = newmsg
+                /** 对一些重复元素进行去重 */
+                messages.msg = Array.from(new Set(newmsg.map(JSON.stringify))).map(JSON.parse)
                 messages.data = { type: "test", text: "forward" }
                 return messages
             }
@@ -354,41 +365,6 @@ async function sendFriendMsg(data, appID) {
 
     return e
 }
-
-/** 判断转发 数组 */
-function forward_array(Msg) {
-    const newmsg = []
-    for (const msgB of Msg) {
-        if (typeof msgB === "object") newmsg.push(...forward_object(msgB))
-        else if (typeof msgB === "string") newmsg.push(...forward_string(msgB))
-    }
-    return newmsg
-}
-
-/** 判断转发 对象 */
-function forward_object(Msg) {
-    const newmsg = []
-    if (typeof Msg === "object") {
-        for (const msgA in Msg) {
-            if (typeof Msg === "object" && typeof Msg[msgA] === "string") {
-                newmsg.push(Msg)
-                break
-            }
-        }
-    } else {
-        for (const msgB of Msg) {
-            if (typeof msgB === "object") newmsg.push(msgB)
-            else if (typeof msgB === "string") newmsg.push(...forward_string(msgB))
-        }
-    }
-    return newmsg
-}
-
-/** 判断转发 字符串 */
-function forward_string(Msg) {
-    return [{ type: "forward", text: Msg }]
-}
-
 
 /** 将消息转成QQGuildApi格式 */
 async function sendGroupMsg(data, allMsg, reference, appID) {
@@ -538,6 +514,10 @@ async function postMessage(msgBody, msg, reference, appID) {
         } else if (file instanceof Uint8Array) {
             /** 转成字符串... */
             file = Buffer.from(file).toString('base64')
+        } else if (file.includes("file://")) {
+            /** 转成base64 */
+            img = file
+            file = Buffer.from(fs.readFileSync(file.replace(/^file:(\/\/\/|\/\/)/, ""))).toString('base64')
         }
 
         GroupMsg = new FormData()
