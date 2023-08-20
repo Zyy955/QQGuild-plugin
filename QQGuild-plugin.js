@@ -293,6 +293,11 @@ async function sendFriendMsg(data, appID) {
                         /** 套娃转发 */
                         if (formsg?.data?.type === "test") {
                             newmsg.push(...formsg.msg)
+                        } else if (Array.isArray(formsg)) {
+                            for (const arr of formsg) {
+                                if (typeof arr === "string") newmsg.push({ type: "forward", text: arr })
+                                else newmsg.push(arr)
+                            }
                         } else {
                             /** 普通对象 图片 文件 at */
                             newmsg.push(formsg)
@@ -431,7 +436,7 @@ function apiMsg(data, msgs, reference, appID, newMsg) {
                 break
         }
     })
-    return content.replace(/\n{1,3}$/g, '')
+    return content.replace(/\n{1,3}$/g, '').replace(/\n{3,4}/g, '\n\n')
 }
 
 
