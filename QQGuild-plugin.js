@@ -370,11 +370,6 @@ export let QQGuild_Bot = {
                         log += `[图片：base64://...]`
                         image = Buffer.from(reply_msg.file.data).toString('base64')
                     }
-                    /** 字符串格式的base64 */
-                    else if (typeof file === "string") {
-                        log += `[图片：base64://...]`
-                        image = file.replace(/^base64:\/\//, "")
-                    }
                     /** 检测是否为频道下发图片 复读表情包用... */
                     else if (reply_msg.url) {
                         img = img + reply_msg.file
@@ -408,7 +403,11 @@ export let QQGuild_Bot = {
                             SendMsg.set("image", file)
                         }
                     }
-
+                    /** 字符串格式的base64 */
+                    else if (typeof file === "string") {
+                        log += `[图片：base64://...]`
+                        image = file.replace(/^base64:\/\//, "")
+                    }
                 }
                 if (image) { SendMsg.set("file_image", new Blob([Buffer.from(image, "base64")])) }
             }
