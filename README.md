@@ -1,5 +1,7 @@
 使用[NodeJS-SDK](https://github.com/tencent-connect/bot-node-sdk)进行连接
 
+![Visitor Count](https://profile-counter.glitch.me/Zyy955-QQGuild-plugin/count.svg)
+
 咕咕咕~：
 - [√] 基础消息收发
 - [√] 撤回消息
