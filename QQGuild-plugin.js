@@ -318,7 +318,7 @@ export let QQGuild_Bot = {
             content += await handler(i)
         }
         content = await this.allurl(content)
-        content.replace(/\n{1,3}$/g, '').replace(/\n{3,4}/g, '\n\n')
+        content = content.replace(/\n{1,3}$/g, '').replace(/\n{3,4}/g, '\n\n')
         if (content !== "" && content) Api_msg.push(content)
         return Api_msg
     },

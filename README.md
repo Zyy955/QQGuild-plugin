@@ -16,7 +16,11 @@
 - [ ] 适配设置、删除精华 应该不适配主体方法，会由插件自身完成...(再看)
 - [√] 适配`设置主人`插件
 
-可搭配[直接登录插件](https://gitee.com/Zyy955/Yunzai-Bot-plugin)直接使用频道而无需使用QQ登录
+#### 可选安装
+在`Yunzai`根目录执行，可更改启动命令为`node apps`来跳过登录QQ直接使用微信机器人，不影响原先的`node app`
+```
+curl -o "./apps.js" "https://gitee.com/Zyy955/Yunzai-Bot-plugin/raw/main/apps.js"
+```
 
 ## 安装插件
 
