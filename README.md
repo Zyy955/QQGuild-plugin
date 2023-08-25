@@ -30,12 +30,12 @@ curl -o "./apps.js" "https://gitee.com/Zyy955/Yunzai-Bot-plugin/raw/main/apps.js
 
 Gitee：
 ```
-git clone --depth 1 https://gitee.com/Zyy955/QQGuild-plugin ./plugins/QQGuild-plugin && pnpm install -P
+git clone --depth=1 https://gitee.com/Zyy955/QQGuild-plugin ./plugins/QQGuild-plugin && pnpm install -P
 ```
 
 Github：
 ```
-git clone --depth 1 https://github.com/Zyy955/QQGuild-plugin ./plugins/QQGuild-plugin && pnpm install -P
+git clone --depth=1 https://github.com/Zyy955/QQGuild-plugin ./plugins/QQGuild-plugin && pnpm install -P
 ```
 
 ## 机器人指令配置
