@@ -331,7 +331,11 @@ export let QQGuild_Bot = {
         if (content.match(whiteRegex)) return content
         else {
             const urlRegex = /(https?:\/\/)?(([0-9a-z.]+\.[a-z]+)|(([0-9]{1,3}\.){3}[0-9]{1,3}))(:[0-9]+)?(\/[0-9a-z%/.\-_]*)?(\?[0-9a-z=&%_\-]*)?(\#[0-9a-z=&%_\-]*)?/ig
-            return content.replace(urlRegex, matchedUrl => matchedUrl.replace(/[./]/g, '_'))
+            return content.replace(urlRegex, url => {
+                const domain = (new URL(!/^https?:\/\//i.test(url) ? `http://${url}` : url).hostname).match(/\.[^.]+$/)
+                const split_url = url.split(domain[0])
+                return split_url[0] + domain[0].replace(".", "_") + split_url[1].replace(/\./g, '_')
+            })
         }
     },
     /** 开始回复消息 */
