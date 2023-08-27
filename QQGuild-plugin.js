@@ -5,6 +5,7 @@ import { FormData, Blob } from "node-fetch"
 import imageminJpegtran from "imagemin-jpegtran"
 import imageminPngquant from "imagemin-pngquant"
 import PluginsLoader from "../../lib/plugins/loader.js"
+import puppeteer from "../../lib/puppeteer/puppeteer.js"
 import { createOpenAPI, createWebsocket } from "qq-guild-bot"
 
 logger.info("QQGuild-plugin初始化...")
@@ -237,6 +238,62 @@ export let QQGuild_Bot = {
         content && allMsg.push(content)
         return allMsg.join(" ")
     },
+    /** 发送主动消息 解除私信限制 */
+    Sendprivate: async (data) => {
+        const { msg, appID } = data
+        const newmsg = {
+            source_guild_id: msg.guild_id,
+            recipient_id: msg.author.id
+        }
+        const newdata = await BotCfg[appID].client.directMessageApi.createDirectMessage(newmsg)
+        await BotCfg[appID].client.directMessageApi
+            .postDirectMessage(newdata.data.guild_id, { content: " QQGuild-plugin：你好~" })
+    },
+    /** 获取频道名称 */
+    GetGuild_name(guild_id) {
+        return QQGuild.guilds?.[guild_id]?.name
+    },
+
+    /** 获取子频道名称 */
+    Getchannel_name(guild_id, channel_id) {
+        return QQGuild.guilds?.[guild_id]?.channels?.[channel_id]
+    },
+
+    /** 获取用户名称 */
+    GetUser_name: async (appID, msg) => {
+        const { author, message, op_user_id } = msg
+        const guild_id = msg?.src_guild_id || message?.src_guild_id || msg?.guild_id || message?.guild_id
+
+        /** 用户名称 */
+        let user_name = author?.username || message?.author?.username || ""
+        if (!user_name && !op_user_id) {
+            const user_id = author?.id || message?.author.id || msg?.user_id
+            if (!user_id) return user_name = ""
+            user_name = (await this.UserName(appID, guild_id, user_id)).nick
+        }
+        return user_name
+    },
+
+    /** 从api获取用户名称 */
+    UserName: async (appID, guild_id, user_id) => {
+        const { data } = await BotCfg[appID].client.guildApi.guildMember(guild_id, user_id)
+        const nick = data.nick
+        const name = data.user.username
+        const avatar = data.user.avatar
+        const joined_at = data.joined_at.replace(/T|\+08:00/g, " ")
+        return { nick, name, avatar, joined_at }
+    },
+    /** 渲染图片 */
+    async picture_reply(old_msg, Api_err) {
+        const data = {
+            Api_err: Api_err,
+            old_msg: old_msg.replace(/\n/g, "\\n"),
+            saveId: 'msg_error',
+            _plugin: 'msg_error',
+            tplFile: './plugins/QQGuild-plugin/resources/error_msg.html',
+        }
+        return await puppeteer.screenshot(`msg_error/msg_error`, data)
+    },
 
     /**
      * 转换消息为api可接收格式
@@ -300,7 +357,7 @@ export let QQGuild_Bot = {
             },
             "forward": async (i) => {
                 if (QQGuild.config.分片转发) {
-                    const forward_msg = await this.allurl(i.text)
+                    const forward_msg = await this.allurl(data, i.text)
                     await this.postMessage(data, [forward_msg], reference)
                     return ''
                 } else {
@@ -317,13 +374,13 @@ export let QQGuild_Bot = {
             const handler = msg_type[i.type] || msg_type["default"]
             content += await handler(i)
         }
-        content = await this.allurl(content)
+        content = await this.allurl(data, content)
         content = content.replace(/\n{1,3}$/g, '').replace(/\n{3,4}/g, '\n\n')
         if (content !== "" && content) Api_msg.push(content)
         return Api_msg
     },
     /** 对url进行特殊处理，防止发送失败 */
-    allurl(content) {
+    async allurl(data, content) {
         if (typeof content !== 'string') return content
         const urls = QQGuild.config.url白名单
         const whiteRegex = new RegExp(`\\b(${urls.map(url => url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'g')
@@ -331,11 +388,16 @@ export let QQGuild_Bot = {
         if (content.match(whiteRegex)) return content
         else {
             const urlRegex = /(https?:\/\/)?(([0-9a-z.]+\.[a-z]+)|(([0-9]{1,3}\.){3}[0-9]{1,3}))(:[0-9]+)?(\/[0-9a-z%/.\-_]*)?(\?[0-9a-z=&%_\-]*)?(\#[0-9a-z=&%_\-]*)?/ig
-            return content.replace(urlRegex, url => {
-                const domain = (new URL(!/^https?:\/\//i.test(url) ? `http://${url}` : url).hostname).match(/\.[^.]+$/)
-                const split_url = url.split(domain[0])
-                return split_url[0] + domain[0].replace(".", "_") + split_url[1].replace(/\./g, '_')
-            })
+            if (urlRegex.test(content)) {
+                const base64 = await this.picture_reply(content, null)
+                this.postMessage(data, [base64], false)
+                return content.replace(urlRegex, url => {
+                    const domain = (new URL(!/^https?:\/\//i.test(url) ? `http://${url}` : url).hostname).match(/\.[^.]+$/)
+                    const split_url = url.split(domain[0])
+                    return split_url[0] + domain[0].replace(".", "_") + split_url[1].replace(/\./g, '_')
+                })
+            }
+            return content
         }
     },
     /** 开始回复消息 */
@@ -441,11 +503,12 @@ export let QQGuild_Bot = {
         let res
         try {
             if (data.eventType === "DIRECT_MESSAGE_CREATE") {
-                res = await BotCfg[appID].client.directMessageApi.postDirectMessage(msg.guild_id, SendMsg)
+                res = awaitBotCfg[appID].client.directMessageApi.postDirectMessage(msg.guild_id, SendMsg)
             }
             else {
                 res = await BotCfg[appID].client.messageApi.postMessage(msg.channel_id, SendMsg)
             }
+
         } catch (error) {
             /** 图片过大发送失败，进行压缩重新发送... */
             if (error.code === 304020) {
@@ -455,9 +518,28 @@ export let QQGuild_Bot = {
                 })
                 logger.mark(`${Bot_name}：压缩完成...正在重新发送...`)
                 SendMsg.set("file_image", new Blob([Buffer.from(newbase64)]))
-                res = await BotCfg[appID].client.messageApi.postMessage(msg.channel_id, SendMsg)
+                /** 判断频道还是细聊 */
+                if (data.eventType === "DIRECT_MESSAGE_CREATE") {
+                    res = awaitBotCfg[appID].client.directMessageApi.postDirectMessage(msg.guild_id, SendMsg)
+                }
+                else {
+                    res = await BotCfg[appID].client.messageApi.postMessage(msg.channel_id, SendMsg)
+                }
+
             } else {
-                return logger.error(`${Bot_name} 发送消息错误：`, error)
+                logger.error(`${Bot_name} 发送消息错误，正在转成图片重新发送...\n错误信息：`, error)
+                /** 转换为图片发送 */
+                const new_msg = await this.picture_reply(await SendMsg.get("content"), error)
+                /** 删除原先文本消息 */
+                SendMsg.delete("content")
+                SendMsg.set("file_image", new Blob([new_msg.file]))
+                /** 判断频道还是细聊 */
+                if (data.eventType === "DIRECT_MESSAGE_CREATE") {
+                    res = awaitBotCfg[appID].client.directMessageApi.postDirectMessage(msg.guild_id, SendMsg)
+                }
+                else {
+                    res = await BotCfg[appID].client.messageApi.postMessage(msg.channel_id, SendMsg)
+                }
             }
         }
         /** 返回消息id给撤回用？ */
@@ -467,52 +549,7 @@ export let QQGuild_Bot = {
             time: parseInt(Date.parse(res.data.timestamp) / 1000),
             message_id: res.data.id
         }
-    },
-    /** 发送主动消息 解除私信限制 */
-    Sendprivate: async (data) => {
-        const { msg, appID } = data
-        const newmsg = {
-            source_guild_id: msg.guild_id,
-            recipient_id: msg.author.id
-        }
-        const newdata = await BotCfg[appID].client.directMessageApi.createDirectMessage(newmsg)
-        await BotCfg[appID].client.directMessageApi
-            .postDirectMessage(newdata.data.guild_id, { content: " QQGuild-plugin：你好~" })
-    },
-    /** 获取频道名称 */
-    GetGuild_name(guild_id) {
-        return QQGuild.guilds?.[guild_id]?.name
-    },
-
-    /** 获取子频道名称 */
-    Getchannel_name(guild_id, channel_id) {
-        return QQGuild.guilds?.[guild_id]?.channels?.[channel_id]
-    },
-
-    /** 获取用户名称 */
-    GetUser_name: async (appID, msg) => {
-        const { author, message, op_user_id } = msg
-        const guild_id = msg?.src_guild_id || message?.src_guild_id || msg?.guild_id || message?.guild_id
-
-        /** 用户名称 */
-        let user_name = author?.username || message?.author?.username || ""
-        if (!user_name && !op_user_id) {
-            const user_id = author?.id || message?.author.id || msg?.user_id
-            if (!user_id) return user_name = ""
-            user_name = (await this.UserName(appID, guild_id, user_id)).nick
-        }
-        return user_name
-    },
-
-    /** 从api获取用户名称 */
-    UserName: async (appID, guild_id, user_id) => {
-        const { data } = await BotCfg[appID].client.guildApi.guildMember(guild_id, user_id)
-        const nick = data.nick
-        const name = data.user.username
-        const avatar = data.user.avatar
-        const joined_at = data.joined_at.replace(/T|\+08:00/g, " ")
-        return { nick, name, avatar, joined_at }
-    },
+    }
 }
 
 /** 加载机器人 */

@@ -4,7 +4,7 @@
     "url": "https://github.com/Zyy955/QQGuild-plugin",
     "gitee": "https://gitee.com/Zyy955/QQGuild-plugin"
   },
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "dependencies": {
     "qq-guild-bot": "^2.9.5",

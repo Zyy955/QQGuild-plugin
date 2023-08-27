@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+
+<head>
+    <style>
+        html,
+        body {
+            margin: 20px;
+            padding: 20px;
+            max-width: 800px;
+            max-height: 800px;
+            width: auto;
+            height: auto;
+        }
+
+        body {
+            animation: gradient 40s ease infinite;
+            background: linear-gradient(45deg, #FAC9B8, #FFD8C2, #FFEFB2, #FFE4D4, #C2E4E8, #FFC7CE, #FEDCD2, #575040, #6de5dc, #B7E3E9, #FFDAB9, #76aee7, #FFE6E6, #B5EAD7, #F6D5E3, #F7EEA7, #FFDAC1, #B0E0E6, #FFB6C1, #F4F9C4);
+            background-size: 400% 400%;
+            font-family: 'Open Sans', sans-serif;
+            justify-content: center;
+            align-items: center;
+            padding: 20;
+            margin: 20;
+        }
+
+        @keyframes gradient {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        body:before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(20px);
+            z-index: -1;
+        }
+
+        .message {
+            width: auto;
+            min-height: 0;
+            margin: 15px;
+            margin-top: 20px;
+            border-radius: 10px;
+            background-color: rgba(250, 250, 250, 0.724);
+            padding: 20px;
+            transition: 0.8s cubic-bezier(0.83, 0.02, 0.38, 1);
+            border: 2px solid #f5f5f5;
+            box-sizing: border-box;
+            scrollbar-width: thin;
+            scrollbar-color: #888 #f5f5f5;
+            white-space: normal;
+            word-wrap: break-word;
+            line-height: 0.3;
+        }
+
+        .error_message {
+            width: auto;
+            min-height: 0;
+            margin: 15px;
+            margin-top: 3vh;
+            border-radius: 10px;
+            background-color: rgba(250, 250, 250, 0.724);
+            padding: 20px;
+            transition: 0.8s cubic-bezier(0.83, 0.02, 0.38, 1);
+            border: 2px solid #f5f5f5;
+            box-sizing: border-box;
+            scrollbar-width: thin;
+            scrollbar-color: #888 #f5f5f5;
+            white-space: normal;
+            word-wrap: break-word;
+            line-height: 0.3;
+        }
+
+        .author {
+            display: block;
+            font-size: 16px;
+            line-height: 24px;
+            color: #000000;
+            text-align: center;
+            padding-left: 20px
+        }
+    </style>
+
+    <script>
+        window.onload = function () {
+            const old_msg = "{{old_msg}}"
+            const paragraphs = old_msg.split('\n\n')
+            const message_div = document.querySelectorAll('.message')
+            // 创建<P>标签
+            for (let i = 0; i < message_div.length; i++) {
+                let div = message_div[i]
+                const list = paragraphs[i].split('\n')
+                for (let i = 0; i < list.length; i++) {
+                    const p = document.createElement('p')
+                    p.textContent = list[i]
+                    div.appendChild(p)
+                }
+            }
+        }
+    </script>
+
+</head>
+
+<body>
+    {{if Api_err}}
+    <div class="error_message">
+        <p><b>状态码：</b>{{Api_err.code}}</p>
+        <p><b>错误原因：</b>{{Api_err.message}}</p>
+        <p><b>错误标识符: </b>{{Api_err.traceid}}</p>
+    </div>
+    {{/if}}
+    <div class="message">
+        <h4>原始消息：</h4>
+    </div>
+    <div class="author"><b>Created By Yunzai-Bot & QQGulid-plugin <span>0.2.1</span></b></div>
+</body>
