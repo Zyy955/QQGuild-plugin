@@ -2,7 +2,7 @@
 
 ![Visitor Count](https://profile-counter.glitch.me/Zyy955-QQGuild-plugin/count.svg)
 
-咕咕咕~：
+<details><summary>咕咕咕~：</summary>
 - [√] 基础消息收发
 - [√] 撤回消息
 - [√] 引用消息
@@ -11,12 +11,14 @@
     - [√] `xiaoyao-cvs-plugin`插件的`#刷新ck`指令暂未适配...等待pr通过，可正常使用指令
 - [√] 根据api返回的状态码对图片进行缩放后重新发送图片...例如`xiaoyao-cvs-plugin`的星铁图鉴
 - [√] 替换url中成为链接的字符，使其可以正常发送... 
-- [ ] 将发送失败状态码和原因进行回复用户...
+- [√] 将发送失败状态码和原因通过图片进行回复用户...
 - [√] 可控制台执行`#QQ频道设置...`
 - [√] 适配`Bot.pickGroup(group_id).sendMsg("QQGuild-plugin：主动消息")`方法
     - 私聊主动消息不打算适配 官方api只允许机器人每天向单个用户推送两条主动消息
 - [ ] 适配设置、删除精华 应该不适配主体方法，会由插件自身完成...(再看)
 - [√] 适配`设置主人`插件
+
+</details>
 
 #### 可选安装
 在`Yunzai`根目录执行，可更改启动命令为`node apps`来跳过登录QQ直接使用微信机器人，不影响原先的`node app`
@@ -40,6 +42,8 @@ git clone --depth=1 https://github.com/Zyy955/QQGuild-plugin ./plugins/QQGuild-p
 
 ## 机器人指令配置
 
+<details><summary>展开/收起</summary>
+
 支持在控制台配置机器人，例如输入`#QQ频道设置...`
 
 添加机器人：
@@ -56,7 +60,11 @@ git clone --depth=1 https://github.com/Zyy955/QQGuild-plugin ./plugins/QQGuild-p
 ```
 #QQ频道账号
 ```
+</details>
+
 ## 使用例子
+
+<details><summary>展开/收起</summary>
 
 是否沙盒：`是`
 
@@ -81,6 +89,7 @@ token：`abcdefghijklmnopqrstuvwxyz123456`
 ```
 #QQ频道账号
 ```
+</details>
 
 ## 解除频道私信
 
@@ -110,6 +119,14 @@ token：`abcdefghijklmnopqrstuvwxyz123456`
 - 使用方法
   - 方法1：发送`#设置主人`，随后复制发送控制台的验证码即可成为主人
   - 方法2：发送`#设置主人@用户`，需要你是主人的情况下，指定此用户成为主人
+
+## 爱发电
+
+QQ群：`884587317`
+
+![爱发电](https://cdn.jsdelivr.net/gh/Zyy955/imgs/img/202308271209508.jpeg)
+
+
 
 ## 鸣谢
 
