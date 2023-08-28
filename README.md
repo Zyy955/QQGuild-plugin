@@ -1,3 +1,5 @@
+QQ交流群~欢迎加入：`884587317`
+
 使用[NodeJS-SDK](https://github.com/tencent-connect/bot-node-sdk)进行连接
 
 ![Visitor Count](https://profile-counter.glitch.me/Zyy955-QQGuild-plugin/count.svg)
@@ -121,8 +123,6 @@ token：`abcdefghijklmnopqrstuvwxyz123456`
   - 方法2：发送`#设置主人@用户`，需要你是主人的情况下，指定此用户成为主人
 
 ## 爱发电
-
-QQ群：`884587317`
 
 ![爱发电](https://cdn.jsdelivr.net/gh/Zyy955/imgs/img/202308271209508.jpeg)
 
