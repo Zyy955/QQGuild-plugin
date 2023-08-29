@@ -1,9 +1,6 @@
 import fs from "fs"
-import imagemin from "imagemin"
 import { Yunzai } from "./model/Yunzai.js"
 import { FormData, Blob } from "node-fetch"
-import imageminJpegtran from "imagemin-jpegtran"
-import imageminPngquant from "imagemin-pngquant"
 import PluginsLoader from "../../lib/plugins/loader.js"
 import puppeteer from "../../lib/puppeteer/puppeteer.js"
 import { createOpenAPI, createWebsocket } from "qq-guild-bot"
@@ -503,7 +500,7 @@ export let QQGuild_Bot = {
         let res
         try {
             if (data.eventType === "DIRECT_MESSAGE_CREATE") {
-                res = awaitBotCfg[appID].client.directMessageApi.postDirectMessage(msg.guild_id, SendMsg)
+                res = await BotCfg[appID].client.directMessageApi.postDirectMessage(msg.guild_id, SendMsg)
             }
             else {
                 res = await BotCfg[appID].client.messageApi.postMessage(msg.channel_id, SendMsg)
@@ -512,12 +509,28 @@ export let QQGuild_Bot = {
         } catch (error) {
             /** 图片过大发送失败，进行压缩重新发送... */
             if (error.code === 304020) {
-                logger.error(`${Bot_name}：图片发送失败...正在进行压缩...`)
-                const newbase64 = await imagemin.buffer(Buffer.from(await SendMsg.get("file_image").arrayBuffer()), {
-                    plugins: [imageminJpegtran(), imageminPngquant()]
-                })
-                logger.mark(`${Bot_name}：压缩完成...正在重新发送...`)
-                SendMsg.set("file_image", new Blob([Buffer.from(newbase64)]))
+                const imagemin = (await import("imagemin")).default
+                let imageminJpegtran
+                let imageminPngquant
+                try {
+                    imageminJpegtran = (await import("imagemin-jpegtran")).default
+                    imageminPngquant = (await import("imagemin-pngquant")).default
+                } catch (err) {
+                    logger.error(err.message)
+                }
+
+                if (!imagemin || !imageminJpegtran || !imageminPngquant) {
+                    SendMsg.delete("file_image")
+                    SendMsg.set("content", "图片过大，发送失败...如需使用图像压缩功能，请在Yunzai根目录执行 pnpm install 进行安装图像压缩依赖")
+                } else {
+                    logger.error(`${Bot_name}：图片发送失败...正在进行压缩...`)
+                    const newbase64 = await imagemin.buffer(Buffer.from(await SendMsg.get("file_image").arrayBuffer()), {
+                        plugins: [imageminJpegtran(), imageminPngquant()]
+                    })
+                    logger.mark(`${Bot_name}：压缩完成...正在重新发送...`)
+                    SendMsg.set("file_image", new Blob([Buffer.from(newbase64)]))
+                }
+
                 /** 判断频道还是细聊 */
                 if (data.eventType === "DIRECT_MESSAGE_CREATE") {
                     res = awaitBotCfg[appID].client.directMessageApi.postDirectMessage(msg.guild_id, SendMsg)
@@ -533,9 +546,9 @@ export let QQGuild_Bot = {
                 /** 删除原先文本消息 */
                 SendMsg.delete("content")
                 SendMsg.set("file_image", new Blob([new_msg.file]))
-                /** 判断频道还是细聊 */
+                /** 判断频道还是私聊 */
                 if (data.eventType === "DIRECT_MESSAGE_CREATE") {
-                    res = awaitBotCfg[appID].client.directMessageApi.postDirectMessage(msg.guild_id, SendMsg)
+                    res = await BotCfg[appID].client.directMessageApi.postDirectMessage(msg.guild_id, SendMsg)
                 }
                 else {
                     res = await BotCfg[appID].client.messageApi.postMessage(msg.channel_id, SendMsg)
