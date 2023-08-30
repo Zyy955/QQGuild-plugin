@@ -17,7 +17,8 @@ global.QQGuild = {
     BotCfg: {},
     config: {},
     guilds: {},
-    oldway: {}
+    oldway: {},
+    bot: {}
 }
 
 let _path = process.cwd() + "/plugins/QQGuild-plugin/config.yaml"
@@ -107,7 +108,7 @@ export let Yunzai = {
     },
     /** 消息转换为Yunzai格式 */
     async msg(data) {
-        const { msg, appID } = data
+        const { appID, msg } = data
         const BotCfg = QQGuild.BotCfg
         const { QQGuild_Bot } = await import("../QQGuild-plugin.js")
         let time = parseInt(Date.parse(msg.timestamp) / 1000)
@@ -201,47 +202,47 @@ export let Yunzai = {
                 makeForwardMsg: async (forwardMsg) => {
                     const messages = {}
                     const newmsg = []
-                    const content = data.msg.content
 
                     /** 针对无限套娃的转发进行处理 */
                     for (const i_msg of forwardMsg) {
-                        /** message -> 对象 -> data.type=test ->套娃转发 */
-                        const formsg = i_msg?.message
-                        if (formsg && typeof formsg === "object") {
-                            /** 套娃转发 */
-                            if (formsg?.data?.type === "test") {
-                                newmsg.push(...formsg.msg)
-                            } else if (Array.isArray(formsg)) {
-                                for (const arr of formsg) {
-                                    if (typeof arr === "string") newmsg.push({ type: "forward", text: arr })
-                                    else newmsg.push(arr)
+                        const for_msg = i_msg.message
+                        /** 套娃转发 */
+                        if (typeof for_msg === "object" && for_msg?.data?.type === "test") {
+                            newmsg.push(...for_msg.msg)
+                        }
+                        /** 兼容喵崽更新抽卡记录 */
+                        else if (Array.isArray(for_msg)) {
+                            for_msg.forEach(i => {
+                                if (typeof i === "string") {
+                                    newmsg.push({ type: "forward", text: i.trim().replace(/^\\n{1,3}|\\n{1,3}$/g, "") })
+                                } else {
+                                    newmsg.push(i)
                                 }
-                            } else {
-                                /** 普通对象 */
-                                newmsg.push(formsg)
-                            }
-                        } else {
-                            /** 日志特殊处理 */
-                            if (/^#.*日志$/.test(content)) {
-                                let splitMsg
-                                for (const i of forwardMsg) {
-                                    splitMsg = i.message.split("\n[").map(element => {
-                                        if (QQGuild.config.分片转发) {
-                                            if (element.length > 1000)
-                                                element = element.substring(0, 1000) + "日志过长..."
-                                            return { type: "forward", text: `[${element.trim()}\n` }
-                                        } else {
-                                            if (element.length > 100)
-                                                element = element.substring(0, 100) + "日志过长..."
-                                            return { type: "forward", text: `[${element.trim()}\n` }
-                                        }
-                                    })
+                            })
+                        }
+                        /** 优先处理日志 */
+                        else if (typeof for_msg === "object" && /^#.*日志$/.test(data.msg.content)) {
+                            const splitMsg = for_msg.split("\n").map(i => {
+                                if (!i || i.trim() === "") return
+                                if (QQGuild.config.分片转发) {
+                                    return { type: "forward", text: i.substring(0, 1000).trim().replace(/^\\n{1,3}|\\n{1,3}$/g, "") }
+                                } else {
+                                    return { type: "forward", text: i.substring(0, 100).trim().replace(/^\\n{1,3}|\\n{1,3}$/g, "") }
                                 }
-                                newmsg.push(...splitMsg.slice(0, 50))
-                            } else {
-                                /** 正常文本 */
-                                newmsg.push({ type: "forward", text: formsg })
-                            }
+                            })
+                            newmsg.push(...splitMsg.slice(0, 50))
+                        }
+                        /** AT 表情包 */
+                        else if (typeof for_msg === "object") {
+                            newmsg.push(for_msg)
+                        }
+                        /** 普通文本 */
+                        else if (typeof for_msg === "string") {
+                            /** 正常文本 */
+                            newmsg.push({ type: "forward", text: for_msg.replace(/^\\n{1,3}|\\n{1,3}$/g, "") })
+                        }
+                        else {
+                            logger.error("未知字段，请反馈至作者：", for_msg)
                         }
                     }
                     /** 对一些重复元素进行去重 */
