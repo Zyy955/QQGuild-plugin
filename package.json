@@ -1,18 +1,12 @@
 {
-  "author": {
-    "name": "Zyy955",
-    "url": "https://github.com/Zyy955/QQGuild-plugin",
-    "gitee": "https://gitee.com/Zyy955/QQGuild-plugin"
-  },
-  "version": "0.2.1",
+  "name": "qqguild-plugin",
+  "version": "0.2.2",
+  "author": "Zyy955",
+  "github": "https://github.com/Zyy955/QQGuild-plugin",
+  "gitee": "https://gitee.com/Zyy955/QQGuild-plugin",
   "type": "module",
   "dependencies": {
     "qq-guild-bot": "^2.9.5",
-    "imagemin": "^8.0.1",
     "qrcode": "^1.5.3"
-  },
-  "devDependencies": {
-    "imagemin-jpegtran": "^7.0.0",
-    "imagemin-pngquant": "^9.0.2"
   }
 }

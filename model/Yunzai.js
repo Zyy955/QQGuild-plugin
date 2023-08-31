@@ -1,7 +1,9 @@
 import fs from "fs"
+import "./puppeteer.js"
 import Yaml from "yaml"
 import crypto from 'crypto'
 import fetch from "node-fetch"
+import { execSync } from "child_process"
 import { Group } from "icqq/lib/group.js"
 import { createInterface } from "readline"
 import { update } from "../../other/update.js"
@@ -319,6 +321,10 @@ export class QQGuildBot extends plugin {
                     permission: "master"
                 },
                 {
+                    reg: /^#QQ频道更新日志$/gi,
+                    fnc: 'update_log',
+                },
+                {
                     reg: /^#设置主人$/,
                     fnc: 'master'
                 }
@@ -373,6 +379,17 @@ export class QQGuildBot extends plugin {
             await new_update.runUpdate(name)
             if (new_update.isUp)
                 setTimeout(() => new_update.restart(), 2000)
+        }
+        return
+    }
+
+    async update_log(e) {
+        let new_update = new update()
+        new_update.e = e
+        new_update.reply = this.reply
+        const name = "QQGuild-plugin"
+        if (new_update.getPlugin(name)) {
+            this.e.reply(await new_update.getLog(name))
         }
         return
     }

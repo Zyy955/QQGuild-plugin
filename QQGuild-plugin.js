@@ -529,46 +529,16 @@ export let QQGuild_Bot = {
                 ? res = await BotCfg[appID].client.directMessageApi.postDirectMessage(msg.guild_id, SendMsg)
                 : res = await BotCfg[appID].client.messageApi.postMessage(msg.channel_id, SendMsg)
         } catch (error) {
-            /** 图片过大发送失败，进行压缩重新发送... */
-            if (error.code === 304020) {
-                const imagemin = (await import("imagemin")).default
-                let imageminJpegtran
-                let imageminPngquant
-                try {
-                    imageminJpegtran = (await import("imagemin-jpegtran")).default
-                    imageminPngquant = (await import("imagemin-pngquant")).default
-                } catch (err) {
-                    logger.error(err.message)
-                }
+            logger.error(`${Bot_name} 发送消息错误，正在转成图片重新发送...\n错误信息：`, error)
+            /** 转换为图片发送 */
+            let Resend = new FormData()
+            if (msg?.id) Resend.set("msg_id", msg.id)
+            Resend.set("file_image", new Blob([await this.picture_reply(data.Guild?.content || "啊咧，图片发不出来呀", error)]))
 
-                if (!imagemin || !imageminJpegtran || !imageminPngquant) {
-                    SendMsg.delete("file_image")
-                    SendMsg.set("content", "图片过大，发送失败...如需使用图像压缩功能，请在Yunzai根目录执行 pnpm install 进行安装图像压缩依赖")
-                } else {
-                    logger.error(`${Bot_name}：图片发送失败...正在进行压缩...`)
-                    const newbase64 = await imagemin.buffer(Buffer.from(await SendMsg.get("file_image").arrayBuffer()), {
-                        plugins: [imageminJpegtran(), imageminPngquant()]
-                    })
-                    logger.mark(`${Bot_name}：压缩完成...正在重新发送...`)
-                    SendMsg.set("file_image", new Blob([Buffer.from(newbase64)]))
-                }
-
-                /** 判断频道还是私聊 */
-                data.eventType === "DIRECT_MESSAGE_CREATE"
-                    ? res = await BotCfg[appID].client.directMessageApi.postDirectMessage(msg.guild_id, SendMsg)
-                    : res = await BotCfg[appID].client.messageApi.postMessage(msg.channel_id, SendMsg)
-            } else {
-                logger.error(`${Bot_name} 发送消息错误，正在转成图片重新发送...\n错误信息：`, error)
-                /** 转换为图片发送 */
-                let Resend = new FormData()
-                if (msg?.id) Resend.set("msg_id", msg.id)
-                Resend.set("file_image", new Blob([await this.picture_reply(data.Guild.content, error)]))
-
-                /** 判断频道还是私聊 */
-                data.eventType === "DIRECT_MESSAGE_CREATE"
-                    ? res = await BotCfg[appID].client.directMessageApi.postDirectMessage(msg.guild_id, Resend)
-                    : res = await BotCfg[appID].client.messageApi.postMessage(msg.channel_id, Resend)
-            }
+            /** 判断频道还是私聊 */
+            data.eventType === "DIRECT_MESSAGE_CREATE"
+                ? res = await BotCfg[appID].client.directMessageApi.postDirectMessage(msg.guild_id, Resend)
+                : res = await BotCfg[appID].client.messageApi.postMessage(msg.channel_id, Resend)
         }
         /** 返回消息id给撤回用？ */
         return {
