@@ -416,7 +416,7 @@ export let QQGuild_Bot = {
                 base64 = fs.readFileSync(img)
             }
             /** 本地文件转成base64 */
-            else if (typeof file === "string" && file.includes("file://")) {
+            else if (typeof file === "string" && file.includes("file://") || /^(\.{1,2}\/)/.test(file)) {
                 log = `[图片：${file}]`
                 base64 = fs.readFileSync(file.replace(/^file:(\/\/\/|\/\/)/, ""))
             }
