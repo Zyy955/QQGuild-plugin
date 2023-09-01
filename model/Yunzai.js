@@ -87,26 +87,21 @@ export let Yunzai = {
     },
     /** 缓存图片 */
     async download_img(url, name) {
-        const file_name = `./plugins/QQGuild-plugin/data/image/${name}`
-        try {
-            const response = await fetch(url)
-
-            if (!response.ok) {
-                throw new Error(`HTTP 错误！状态码：${response.status}`)
+        return new Promise(async (resolve, reject) => {
+            const file_name = `./plugins/QQGuild-plugin/data/image/${name}`
+            try {
+                const res = await fetch(url)
+                if (!res.ok) { throw new Error(`HTTP 错误！状态码：${res.status}`) }
+                const buffer = await res.arrayBuffer()
+                fs.writeFile(file_name, Buffer.from(buffer), (err) => {
+                    if (err) reject(logger.error('QQGuild-plugin：写入文件时发生错误：', err))
+                    else resolve(logger.mark(`QQGuild-plugin：图片已下载至：${file_name}`))
+                })
+            } catch (error) {
+                logger.error('QQGuild-plugin：下载图片时发生错误：', error)
+                reject(error)
             }
-
-            const imageBuffer = await response.arrayBuffer() // 改为使用 arrayBuffer()
-
-            fs.writeFile(file_name, Buffer.from(imageBuffer), (err) => { // 添加回调函数
-                if (err) {
-                    logger.error('写入文件时发生错误：', err)
-                } else {
-                    logger.mark(`图片已下载至：${file_name}`)
-                }
-            })
-        } catch (error) {
-            logger.error('下载图片时发生错误：', error)
-        }
+        })
     },
     /** 消息转换为Yunzai格式 */
     async msg(data) {
@@ -138,6 +133,10 @@ export let Yunzai = {
             getAvatarUrl: () => {
                 return msg.author.avatar
             },
+            mute: async (time) => {
+                const options = { timeTo: time }
+                await QQGuild.bot.muteMember(appID, msg.guild_id, msg.author.id, options)
+            }
         }
 
         let e = {
