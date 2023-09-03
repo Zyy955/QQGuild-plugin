@@ -1,5 +1,4 @@
 import fs from "fs"
-import "./puppeteer.js"
 import Yaml from "yaml"
 import crypto from 'crypto'
 import fetch from "node-fetch"
@@ -7,7 +6,6 @@ import { execSync } from "child_process"
 import { Group } from "icqq/lib/group.js"
 import { createInterface } from "readline"
 import { update } from "../../other/update.js"
-import common from "../../../lib/common/common.js"
 import plugin from "../../../lib/plugins/plugin.js"
 
 /** 设置主人 */
@@ -73,7 +71,7 @@ export let Yunzai = {
                 /** 缓存图片至本地以供后续调用 */
                 await this.download_img(`https://${i.url}`, i.filename)
                 /** 等1s防止发送空图片 */
-                await common.sleep(1000)
+                await new Promise((resolve) => setTimeout(resolve, 1000))
                 const image = {
                     type: "image",
                     file: i.filename,

@@ -2,6 +2,7 @@ import fs from "fs"
 import qrcode from "qrcode"
 import { Yunzai } from "./model/Yunzai.js"
 import "./model/Api.js"
+import "./model/puppeteer.js"
 import { FormData, Blob } from "node-fetch"
 import PluginsLoader from "../../lib/plugins/loader.js"
 import puppeteer from "../../lib/puppeteer/puppeteer.js"
@@ -305,6 +306,8 @@ export let QQGuild_Bot = {
                     ))) :
                         typeof i === "object" && i !== null ? [i] : []
             )))
+        } else if (msg instanceof Uint8Array) {
+            newMsg.push({ type: "image", file: msg })
         } else if (typeof msg === "object") {
             newMsg.push(msg)
         } else {
