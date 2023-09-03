@@ -259,6 +259,7 @@ let QQGuildApi = {
         let op_user_id
         if (msg?.op_user_id) op_user_id = msg.op_user_id
         else if (msg?.op_user?.id) op_user_id = msg?.op_user_id?.id
+        else op_user_id = msg?.author?.id
         return op_user_id
     }
 }

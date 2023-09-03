@@ -134,9 +134,14 @@ export let Yunzai = {
             getAvatarUrl: () => {
                 return msg.author.avatar
             },
+            /** 禁言 */
             mute: async (time) => {
-                const options = { timeTo: time }
+                const options = { seconds: time }
                 await QQGuild.bot.muteMember(appID, msg.guild_id, msg.author.id, options)
+            },
+            /** 踢 */
+            kick: async () => {
+                await QQGuild.bot.deleteGuildMember(appID, msg.guild_id, msg.author.id)
             }
         }
 
@@ -253,7 +258,8 @@ export let Yunzai = {
                 }
             },
             recall: () => {
-                BotCfg[appID].client.messageApi.deleteMessage(msg.channel_id, msg.id, true)
+                logger.info(`${BotCfg[appID].name} 撤回消息：${msg.id}`)
+                return BotCfg[appID].client.messageApi.deleteMessage(msg.channel_id, msg.id, false)
             },
             reply: async (reply, reference) => {
                 return await QQGuild_Bot.reply_msg(data, reply, reference)
@@ -629,4 +635,10 @@ if (zai_name !== "miao-yunzai") {
 
         return forwardMsg
     }
+}
+
+/** 椰奶椰奶！ */
+if (fs.existsSync(process.cwd() + "/plugins/yenai-plugin")) {
+    const yenai_plugin = (await import("./yenai-plugin.js")).default
+    await yenai_plugin.yenai()
 }

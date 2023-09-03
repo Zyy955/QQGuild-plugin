@@ -72,10 +72,13 @@ export let QQGuild_Bot = {
 
             /** 加载机器人所在频道、将对应的子频道信息存入变量中用于后续调用 */
             const meGuilds = (await BotCfg[appID].client.meApi.meGuilds()).data
-            for (let channelData of meGuilds) {
-                const response = await BotCfg[appID].client.channelApi.channels(channelData.id)
+            for (let guildsData of meGuilds) {
+                const response = await BotCfg[appID].client.channelApi.channels(guildsData.id)
                 const channelList = response.data
-                const guildInfo = { ...channelData, channels: {} }
+                const guildInfo = { ...guildsData, channels: {} }
+
+                /** 判断机器人是否为管理员 */
+                const admin_bot = await QQGuild.bot.guildMember(appID, guildsData.id, QQGuild.BotCfg[appID].id)
 
                 /** 添加群成员列表到Bot.gl中，用于主动发送消息 */
                 for (const i of channelList)
@@ -87,8 +90,9 @@ export let QQGuild_Bot = {
                     })
 
                 for (let subChannel of channelList) { guildInfo.channels[subChannel.id] = subChannel.name }
-                QQGuild.guilds[channelData.id] = guildInfo
-                QQGuild.guilds[channelData.id].appID = appID
+                QQGuild.guilds[guildsData.id] = guildInfo
+                QQGuild.guilds[guildsData.id].appID = appID
+                QQGuild.guilds[guildsData.id].admin = admin_bot.roles.includes("2") ? true : false
             }
 
             /** 建立ws链接 监听bot频道列表、频道资料、列表变化事件 */
@@ -127,9 +131,10 @@ export let QQGuild_Bot = {
         /** 操作人名称 */
         let op_user_name = op_user_id ? (await QQGuild.bot.guildMember(appID, GuildId, op_user_id)).nick : null
         /** 用户名称 */
-        let user_name = msg.author?.username || msg.message?.author?.username
+        let user_name = msg.author?.username || msg.message?.author?.username || msg.user?.username
         if (!user_name || user_name === "") {
-            user_name = (await QQGuild.bot.guildMember(appID, GuildId, msg.author?.id || msg.message?.author.id || msg?.user_id)).nick
+            let user_Id = msg.author?.id || msg.message?.author.id || msg?.user_id
+            user_name = (await QQGuild.bot.guildMember(appID, GuildId, user_Id)).nick
         }
         /** 存入响应体中，后续直接调用即可 */
         data.Guild = {
@@ -149,23 +154,23 @@ export let QQGuild_Bot = {
                 logger.info(`${name}通知：[${msg.name}，操作人:${op_user_name}] Bot已加入频道：${msg.name}`)
                 break
             case "GUILD_UPDATE":
-                logger.info(`${name}通知：[${Guild_name}]管理员 ${op_user_name} 更改了频道资料`)
+                logger.info(`${name}通知：[${Guild_name}] 管理员 ${op_user_name} 更改了频道资料`)
                 break
             case "GUILD_DELETE":
-                logger.info(`${name}通知：[${msg.name}]管理员 ${op_user_name} 将 ${BotCfg[appID].name} 从频道 ${msg.name} 中移除了!`)
+                logger.info(`${name}通知：[${msg.name}] 管理员 ${op_user_name} 将 ${BotCfg[appID].name} 从频道 ${msg.name} 中移除了!`)
                 break
             case "CHANNEL_CREATE":
-                logger.info(`${name}通知：[${Guild_name}]管理员 ${op_user_name} 已创建子频道：${msg.name}`)
+                logger.info(`${name}通知：[${Guild_name}] 管理员 ${op_user_name} 已创建子频道：${msg.name}`)
                 break
             case "CHANNEL_UPDATE":
-                logger.info(`${name}通知：[${Guild_name}]管理员 ${op_user_name} 已更新子频道 ${msg.name} 的资料`)
+                logger.info(`${name}通知：[${Guild_name}] 管理员 ${op_user_name} 已更新子频道 ${msg.name} 的资料`)
                 break
             case "CHANNEL_DELETE":
-                logger.info(`${name}通知：[${Guild_name}]管理员 ${op_user_name} 已删除子频道：${msg.name}`)
+                logger.info(`${name}通知：[${Guild_name}] 管理员 ${op_user_name} 已删除子频道：${msg.name}`)
                 break
             case "GUILD_MEMBER_ADD":
                 if (msg.user.bot)
-                    logger.info(`${name}通知：[${Guild_name}]管理员 ${op_user_name} 已添加机器人：${msg.nick}`)
+                    logger.info(`${name}通知：[${Guild_name}] 管理员 ${op_user_name} 已添加机器人：${msg.nick}`)
                 else
                     logger.info(`${name}通知：[${Guild_name}]成员 ${msg.nick} 加入频道！`)
                 break
@@ -173,7 +178,7 @@ export let QQGuild_Bot = {
                 if (msg.op_user_id === msg.user.id)
                     logger.info(`${name}通知：[${Guild_name}]成员 ${msg.nick} 退出频道！`)
                 else
-                    logger.info(`${name}通知：[${Guild_name}]管理员 ${op_user_name} 已将 ${msg.nick} 移出频道！`)
+                    logger.info(`${name}通知：[${Guild_name}] 管理员 ${op_user_name} 已将 ${msg.nick} 移出频道！`)
                 break
 
             /** 私域消息 */
