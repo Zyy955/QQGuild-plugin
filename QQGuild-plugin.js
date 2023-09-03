@@ -375,7 +375,7 @@ export let QQGuild_Bot = {
         if (msg.match(whiteRegex)) {
             return msg
         } else {
-            const urlRegex = /(https?:\/\/)?(([0-9a-z.-]+\.[a-z]+)|(([0-9]{1,3}\.){3}[0-9]{1,3}))(:[0-9]+)?(\/[0-9a-z%/.\-_]*)?(\?[0-9a-z=&%_\-]*)?(\#[0-9a-z=&%_\-]*)?/ig
+            const urlRegex = /(https?:\/\/)?(([0-9a-z.-]+\.[a-z]+)|(([0-9]{1,3}\.){3}[0-9]{1,3}))(:[0-9]+)?(\/[0-9a-z%/.\-_#]*)?(\?[0-9a-z=&%_\-.]*)?(\#[0-9a-z=&%_\-]*)?/ig
             if (urlRegex.test(msg)) {
                 /** 将url转二维码 */
                 return msg.replace(urlRegex, url => {
@@ -489,7 +489,6 @@ export let QQGuild_Bot = {
         }
         /** 纯文本消息 */
         else {
-            logs += content
             /** 引用消息 */
             if (reference) {
                 SendMsg.message_reference = { message_id: msg?.id, ignore_get_message_error: true }

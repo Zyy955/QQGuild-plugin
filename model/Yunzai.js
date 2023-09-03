@@ -6,6 +6,7 @@ import { execSync } from "child_process"
 import { Group } from "icqq/lib/group.js"
 import { createInterface } from "readline"
 import { update } from "../../other/update.js"
+import common from '../../../lib/common/common.js'
 import plugin from "../../../lib/plugins/plugin.js"
 
 /** 设置主人 */
@@ -30,12 +31,11 @@ if (!fs.existsSync(_path)) {
 /** 加载配置文件到全局变量中 */
 QQGuild.config = Yaml.parse(fs.readFileSync(_path, 'utf8'))
 
-
 export let Yunzai = {
     /** 构建Yunzai的message */
     async message(data) {
+        let atme = false
         let message = []
-        /** raw_message部分还未完成... */
         let raw_message = ""
         const { appID, msg } = data
         const BotCfg = QQGuild.BotCfg
@@ -53,13 +53,18 @@ export let Yunzai = {
                 if (i.startsWith("<@")) {
                     let atValue = i.slice(3, -1)
                     const name = at_name(atValue)
-                    if (BotCfg[appID].id === atValue)
+                    if (BotCfg[appID].id === atValue) {
                         atValue = Bot.uin
+                        atme = true
+                    }
+                    raw_message += name
                     message.push({ type: "at", text: name, qq: atValue })
                 } else if (i.startsWith("<emoji:")) {
                     const faceValue = i.slice(7, -1)
+                    raw_message += `{emoji:${faceValue}}`
                     message.push({ type: "face", text: faceValue })
                 } else {
+                    raw_message += i
                     message.push({ type: "text", text: i })
                 }
             }
@@ -78,10 +83,11 @@ export let Yunzai = {
                     url: `https://${i.url}`,
                     content_type: i.content_type
                 }
+                raw_message += `{image:${i.filename}}`
                 message.push(image)
             }
         }
-        return { message, raw_message }
+        return { message, raw_message, atme }
     },
     /** 缓存图片 */
     async download_img(url, name) {
@@ -112,10 +118,7 @@ export let Yunzai = {
         let role = roles && (roles.includes("4") ? "owner" : roles.includes("2") ? "admin" : "member") || "member"
 
         /** 构建Yunzai的message */
-        let message = await this.message(data)
-
-        /** 判断消息中是否@了机器人 */
-        const atBot = msg.mentions?.find(mention => mention.bot) || false
+        let { message, raw_message, atme } = await this.message(data)
 
         /** 构建member */
         let member = {
@@ -138,7 +141,8 @@ export let Yunzai = {
         }
 
         let e = {
-            ...message,
+            message: [...message],
+            raw_message: raw_message,
             appID: appID,
             author: msg.author,
             mentions: msg.mentions,
@@ -161,15 +165,7 @@ export let Yunzai = {
             self_id: appID,
             font: "宋体",
             seq: msg.seq,
-            source: {
-                /** 需要单独请求指定消息 */
-                message: "",
-                rabd: "",
-                seq: msg.message_reference?.message_id || "",
-                time: "",
-                user_id: ""
-            },
-            atme: atBot,
+            atme: atme,
             member,
             friend: {
                 sendMsg: async (reply, reference) => {
@@ -181,6 +177,9 @@ export let Yunzai = {
                 },
                 makeForwardMsg: async (forwardMsg) => {
                     return await e.group.makeForwardMsg(forwardMsg)
+                },
+                getChatHistory: (seq, num) => {
+                    return ["message", "test"]
                 }
             },
             group: {
@@ -190,6 +189,9 @@ export let Yunzai = {
                     if (id === msg.author.id) {
                         return member
                     }
+                },
+                getChatHistory: (seq, num) => {
+                    return ["message", "test"]
                 },
                 recallMsg: (msg_id) => {
                     logger.info(`${BotCfg[appID].name} 撤回消息：${msg_id}`)
@@ -263,6 +265,29 @@ export let Yunzai = {
                     .replace(/\<emoji:(\d+)>/g, "{face:$1}")
                     .replace(/\<@!(\d+)>/g, "{at:$1}")
                     .replace(/\{([\w-]+)\}\.\w*/, '{image:$1}')
+            }
+        }
+
+        /** 引用消息 */
+        if (msg?.message_reference?.message_id) {
+            const _reference = (await QQGuild.bot.message(appID, msg.channel_id, msg.message_reference.message_id)).message
+            let message = []
+            if (_reference.attachments) {
+                for (let i of _reference.attachments) {
+                    message.push({ type: "image", url: `https://${i.url}` })
+                }
+            }
+            if (_reference.content) {
+                /** 暂不处理...懒 */
+                message.push({ type: "text", text: _reference.content })
+            }
+            message.push({ type: "at", text: `@${_reference.author.username}`, qq: _reference.author.id })
+            e.source = {
+                message: message,
+                rabd: "",
+                seq: _reference.id,
+                time: parseInt(Date.parse(_reference.timestamp) / 1000),
+                user_id: _reference.author.id
             }
         }
 
@@ -538,5 +563,70 @@ Group.prototype.sendMsg = async function (content, source, anony = false) {
     } else {
         /** 调用原始的 sendMsg 方法 */
         return QQGuild.oldway.sendMsg.call(this, content, source, anony)
+    }
+}
+
+/** 对喵云崽的转发进行劫持修改，兼容最新的icqq转发 */
+const zai_name = JSON.parse(fs.readFileSync('./package.json', 'utf-8')).name
+if (zai_name !== "miao-yunzai") {
+    /**
+     * 制作转发消息
+     * @param e 消息事件
+     * @param msg 消息数组
+     * @param dec 转发描述
+     * @param msgsscr 转发信息是否伪装
+     */
+    common.makeForwardMsg = async function makeForwardMsg(e, msg = [], dec = '', msgsscr = false) {
+
+        if (!Array.isArray(msg)) msg = [msg]
+
+        let name = msgsscr ? e.sender.card || e.user_id : Bot.nickname
+        let id = msgsscr ? e.user_id : Bot.uin
+
+        if (e.isGroup) {
+            let info = await e.bot.getGroupMemberInfo(e.group_id, id)
+            name = info.card || info.nickname
+        }
+
+        let userInfo = {
+            user_id: id,
+            nickname: name
+        }
+
+        let forwardMsg = []
+        for (const message of msg) {
+            if (!message) continue
+            forwardMsg.push({
+                ...userInfo,
+                message: message
+            })
+        }
+
+
+        /** 制作转发内容 */
+        if (e?.group?.makeForwardMsg) {
+            forwardMsg = await e.group.makeForwardMsg(forwardMsg)
+        } else if (e?.friend?.makeForwardMsg) {
+            forwardMsg = await e.friend.makeForwardMsg(forwardMsg)
+        } else {
+            return msg.join('\n')
+        }
+
+        if (dec) {
+            /** 处理描述 */
+            if (typeof (forwardMsg.data) === 'object') {
+                let detail = forwardMsg.data?.meta?.detail
+                if (detail) {
+                    detail.news = [{ text: dec }]
+                }
+            } else {
+                forwardMsg.data = forwardMsg.data
+                    .replace(/\n/g, '')
+                    .replace(/<title color="#777777" size="26">(.+?)<\/title>/g, '___')
+                    .replace(/___+/, `<title color="#777777" size="26">${dec}</title>`)
+            }
+        }
+
+        return forwardMsg
     }
 }

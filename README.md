@@ -1,5 +1,9 @@
 QQ交流群~欢迎加入：`884587317`
 
+- 如果您对这个项目感到满意并认为它对你有所帮助，请给我一个`Star`！
+
+- 您的认可是我持续更新的动力~非常感谢您的支持！
+
 使用[NodeJS-SDK](https://github.com/tencent-connect/bot-node-sdk)进行连接
 
 ![Visitor Count](https://profile-counter.glitch.me/Zyy955-QQGuild-plugin/count.svg)
@@ -21,6 +25,13 @@ QQ交流群~欢迎加入：`884587317`
 - [√] 适配`设置主人`插件
 
 </details>
+
+
+# 使用必读
+
+插件是根据`Miao-Yunzai`进行开发，兼容`喵喵`维护的`Yunzai-Bot`。
+
+由于`Yunzai-Bot`结构不一致，许多地方并未进行适配，出现bug是正常现象，有问题请反馈，我尽量解决~
 
 #### 可选安装
 在`Yunzai`根目录执行，可更改启动命令为`node apps`来跳过登录QQ直接使用微信机器人，不影响原先的`node app`
@@ -147,7 +158,3 @@ token：`abcdefghijklmnopqrstuvwxyz123456`
 请不要用于任何商业性行为
 
 插件所有资源都来自互联网，侵删
-
-如果您对这个项目感到满意并认为它对你有所帮助，请给我一个`Star`！
-
-您的认可是我持续更新的动力~非常感谢您的支持！
