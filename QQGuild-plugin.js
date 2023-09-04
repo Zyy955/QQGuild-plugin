@@ -61,24 +61,16 @@ export let QQGuild_Bot = {
             /** 创建 websocket 连接 */
             BotCfg[appID].ws = createWebsocket(BotCfg[appID])
 
-            // 消息监听
-            BotCfg[appID].ws.on('READY', (wsdata) => {
-                /** 保存机器人名称、id */
-                const { user } = wsdata.msg
-                QQGuild.BotCfg[appID].id = user.id
-                QQGuild.BotCfg[appID].name = user.username
-                logger.mark(logger.green(`Bot：${appID} 鉴权成功~`))
-            })
-
             /** 加载机器人所在频道、将对应的子频道信息存入变量中用于后续调用 */
-            const meGuilds = (await BotCfg[appID].client.meApi.meGuilds()).data
+            const meGuilds = await QQGuild.bot.meGuilds(appID)
             for (let guildsData of meGuilds) {
-                const response = await BotCfg[appID].client.channelApi.channels(guildsData.id)
-                const channelList = response.data
+                const channelList = await QQGuild.bot.channels(appID, guildsData.id)
                 const guildInfo = { ...guildsData, channels: {} }
 
-                /** 判断机器人是否为管理员 */
-                const admin_bot = await QQGuild.bot.guildMember(appID, guildsData.id, QQGuild.BotCfg[appID].id)
+                /** 保存机器人名称、id */
+                const user = await QQGuild.bot.me(appID)
+                QQGuild.BotCfg[appID].id = user.id
+                QQGuild.BotCfg[appID].name = user.username
 
                 /** 添加群成员列表到Bot.gl中，用于主动发送消息 */
                 for (const i of channelList)
@@ -92,6 +84,8 @@ export let QQGuild_Bot = {
                 for (let subChannel of channelList) { guildInfo.channels[subChannel.id] = subChannel.name }
                 QQGuild.guilds[guildsData.id] = guildInfo
                 QQGuild.guilds[guildsData.id].appID = appID
+                /** 判断机器人是否为管理员 */
+                const admin_bot = await QQGuild.bot.guildMember(appID, guildsData.id, user.id)
                 QQGuild.guilds[guildsData.id].admin = admin_bot.roles.includes("2") ? true : false
             }
 
