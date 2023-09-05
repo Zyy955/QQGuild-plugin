@@ -1,12 +1,13 @@
 import fs from "fs"
 import Yaml from "yaml"
-import crypto from 'crypto'
+import lodash from "lodash"
+import crypto from "crypto"
 import fetch from "node-fetch"
 import { execSync } from "child_process"
 import { Group } from "icqq/lib/group.js"
 import { createInterface } from "readline"
 import { update } from "../../other/update.js"
-import common from '../../../lib/common/common.js'
+import common from "../../../lib/common/common.js"
 import plugin from "../../../lib/plugins/plugin.js"
 
 /** 设置主人 */
@@ -323,6 +324,119 @@ export let Yunzai = {
             }
         }
         return e
+    },
+    /** 添加Bot */
+    async addBot(e) {
+        const cmd = e.msg.replace(/^#QQ频道设置/gi, "").replace(/：/g, ":").trim().split(':')
+        if (!/^1\d{8}$/.test(cmd[2])) return "appID 错误！"
+        if (!/^[0-9a-zA-Z]{32}$/.test(cmd[3])) return "token 错误！"
+
+        let cfg = Yaml.parse(fs.readFileSync(_path, 'utf8'))
+        if (cfg.bot[cmd[2]]) {
+            delete cfg.bot[cmd[2]]
+            fs.writeFileSync(_path, Yaml.stringify(cfg), 'utf8')
+            return `Bot：${cmd[2]} 删除成功...重启后生效...`
+        } else {
+            cfg.bot[cmd[2]] = {
+                appID: cmd[2],
+                token: cmd[3],
+                sandbox: cmd[0] === "1",
+                allMsg: cmd[1] === "1"
+            }
+        }
+
+        /** 先存入 继续修改~ */
+        QQGuild.config = cfg
+        fs.writeFileSync(_path, Yaml.stringify(cfg), 'utf8')
+        if (cfg.bot[cmd[2]].allMsg)
+            cfg.bot[cmd[2]].intents = [
+                "GUILDS", // bot频道列表、频道资料、列表变化
+                "GUILD_MEMBERS", // 成员资料变化
+                'GUILD_MESSAGES', // 私域
+                "GUILD_MESSAGE_REACTIONS", // 消息表情动态
+                "DIRECT_MESSAGE", // 私信消息
+            ]
+        else
+            cfg.bot[cmd[2]].intents = [
+                "GUILDS", // bot频道列表、频道资料、列表变化
+                "GUILD_MEMBERS", // 成员资料变化
+                "GUILD_MESSAGE_REACTIONS", // 消息表情动态
+                "DIRECT_MESSAGE", // 私信消息
+                "PUBLIC_GUILD_MESSAGES", // 公域消息
+            ]
+
+        QQGuild.BotCfg[cmd[2]] = cfg.bot[cmd[2]]
+        const { QQGuild_Bot } = await import("../QQGuild-plugin.js")
+        await QQGuild_Bot.CreateBot({ [cmd[2]]: cfg.bot[cmd[2]] })
+        return `Bot：${cmd[2]} 已连接...`
+    },
+    /** 设置主人 */
+    add(e) {
+        let cfg = fs.readFileSync("./config/config/other.yaml", "utf8")
+        /** 使用正则表达式确认是TRSS还是Miao */
+        if (cfg.match(RegExp("master:"))) {
+            cfg = cfg.replace(RegExp("masterQQ:"), `masterQQ:\n  - "${user}"`)
+            const value = `master:\n  - "${e.self_id}:${user}"`
+            cfg = cfg.replace(RegExp("master:"), value)
+        } else {
+            cfg = cfg.replace(RegExp("masterQQ:"), `masterQQ:\n  - ${user}`)
+        }
+        fs.writeFileSync("./config/config/other.yaml", cfg, "utf8")
+        return [segment.at(user), "新主人好~(*/ω＼*)"]
+    },
+    /** 新转发消息 */
+    async makeForwardMsg(e, msg = [], dec = '', msgsscr = false) {
+
+        if (!Array.isArray(msg)) msg = [msg]
+
+        let name = msgsscr ? e.sender.card || e.user_id : Bot.nickname
+        let id = msgsscr ? e.user_id : Bot.uin
+
+        if (e.isGroup) {
+            let info = await e.bot.getGroupMemberInfo(e.group_id, id)
+            name = info.card || info.nickname
+        }
+
+        let userInfo = {
+            user_id: id,
+            nickname: name
+        }
+
+        let forwardMsg = []
+        for (const message of msg) {
+            if (!message) continue
+            forwardMsg.push({
+                ...userInfo,
+                message: message
+            })
+        }
+
+
+        /** 制作转发内容 */
+        if (e?.group?.makeForwardMsg) {
+            forwardMsg = await e.group.makeForwardMsg(forwardMsg)
+        } else if (e?.friend?.makeForwardMsg) {
+            forwardMsg = await e.friend.makeForwardMsg(forwardMsg)
+        } else {
+            return msg.join('\n')
+        }
+
+        if (dec) {
+            /** 处理描述 */
+            if (typeof (forwardMsg.data) === 'object') {
+                let detail = forwardMsg.data?.meta?.detail
+                if (detail) {
+                    detail.news = [{ text: dec }]
+                }
+            } else {
+                forwardMsg.data = forwardMsg.data
+                    .replace(/\n/g, '')
+                    .replace(/<title color="#777777" size="26">(.+?)<\/title>/g, '___')
+                    .replace(/___+/, `<title color="#777777" size="26">${dec}</title>`)
+            }
+        }
+
+        return forwardMsg
     }
 }
 
@@ -373,7 +487,7 @@ export class QQGuildBot extends plugin {
             fs.writeFileSync(_path, Yaml.stringify(cfg), 'utf8')
             msg = `QQGuild-plugin：分片转发已${cfg.分片转发 ? '开启' : '关闭'}`
         } else {
-            msg = await addBot(e)
+            msg = await Yunzai.addBot(e)
         }
         return e.reply(msg)
     }
@@ -433,7 +547,7 @@ export class QQGuildBot extends plugin {
             if (cfg.match(RegExp(`- "?${e.at}"?`)))
                 return e.reply([segment.at(e.at), "已经是主人了哦(〃'▽'〃)"])
             user = e.at
-            e.reply(add(e))
+            e.reply(Yunzai.add(e))
         } else {
             /** 检测用户是否已经是主人 */
             if (e.isMaster) return e.reply([segment.at(e.user_id), "已经是主人了哦(〃'▽'〃)"])
@@ -451,99 +565,29 @@ export class QQGuildBot extends plugin {
         this.finish('SetAdmin')
         /** 判断验证码是否正确 */
         if (this.e.msg.trim() === sign[this.e.user_id]) {
-            this.e.reply(add(this.e))
+            this.e.reply(Yunzai.add(this.e))
         } else {
             return this.reply([segment.at(this.e.user_id), "验证码错误"])
         }
     }
 }
 
-
-/** 添加Bot */
-async function addBot(e) {
-    const cmd = e.msg.replace(/^#QQ频道设置/gi, "").replace(/：/g, ":").trim().split(':')
-    if (!/^1\d{8}$/.test(cmd[2])) return "appID 错误！"
-    if (!/^[0-9a-zA-Z]{32}$/.test(cmd[3])) return "token 错误！"
-
-    let cfg = Yaml.parse(fs.readFileSync(_path, 'utf8'))
-    if (cfg.bot[cmd[2]]) {
-        delete cfg.bot[cmd[2]]
-        fs.writeFileSync(_path, Yaml.stringify(cfg), 'utf8')
-        return `Bot：${cmd[2]} 删除成功...重启后生效...`
-    } else {
-        cfg.bot[cmd[2]] = {
-            appID: cmd[2],
-            token: cmd[3],
-            sandbox: cmd[0] === "1",
-            allMsg: cmd[1] === "1"
-        }
-    }
-
-    /** 先存入 继续修改~ */
-    QQGuild.config = cfg
-    fs.writeFileSync(_path, Yaml.stringify(cfg), 'utf8')
-    if (cfg.bot[cmd[2]].allMsg)
-        cfg.bot[cmd[2]].intents = [
-            "GUILDS", // bot频道列表、频道资料、列表变化
-            "GUILD_MEMBERS", // 成员资料变化
-            'GUILD_MESSAGES', // 私域
-            "GUILD_MESSAGE_REACTIONS", // 消息表情动态
-            "DIRECT_MESSAGE", // 私信消息
-        ]
-    else
-        cfg.bot[cmd[2]].intents = [
-            "GUILDS", // bot频道列表、频道资料、列表变化
-            "GUILD_MEMBERS", // 成员资料变化
-            "GUILD_MESSAGE_REACTIONS", // 消息表情动态
-            "DIRECT_MESSAGE", // 私信消息
-            "PUBLIC_GUILD_MESSAGES", // 公域消息
-        ]
-
-    QQGuild.BotCfg[cmd[2]] = cfg.bot[cmd[2]]
-    const { QQGuild_Bot } = await import("../QQGuild-plugin.js")
-    await QQGuild_Bot.CreateBot({ [cmd[2]]: cfg.bot[cmd[2]] })
-    return `Bot：${cmd[2]} 已连接...`
-}
-
 /** 监听控制台输入 */
-const rl = createInterface({
-    input: process.stdin,
-    output: process.stdout
-})
-
-rl.on('SIGINT', () => {
-    rl.close()
-    process.exit()
-})
-
-getInput()
+const rl = createInterface({ input: process.stdin, output: process.stdout })
+rl.on('SIGINT', () => { rl.close(); process.exit() })
 function getInput() {
     rl.question('', async (input) => {
         const msg = input.trim()
         if (/#QQ频道设置.+/gi.test(msg)) {
-            const e = {
-                msg: msg
-            }
-            logger.mark(logger.green(await addBot(e)))
+            const e = { msg: msg }
+            logger.mark(logger.green(await Yunzai.addBot(e)))
         }
         getInput()
     })
 }
+getInput()
 
-/** 设置主人 */
-function add(e) {
-    let cfg = fs.readFileSync("./config/config/other.yaml", "utf8")
-    /** 使用正则表达式确认是TRSS还是Miao */
-    if (cfg.match(RegExp("master:"))) {
-        cfg = cfg.replace(RegExp("masterQQ:"), `masterQQ:\n  - "${user}"`)
-        const value = `master:\n  - "${e.self_id}:${user}"`
-        cfg = cfg.replace(RegExp("master:"), value)
-    } else {
-        cfg = cfg.replace(RegExp("masterQQ:"), `masterQQ:\n  - ${user}`)
-    }
-    fs.writeFileSync("./config/config/other.yaml", cfg, "utf8")
-    return [segment.at(user), "新主人好~(*/ω＼*)"]
-}
+
 
 /** 劫持修改发送消息方法 */
 QQGuild.oldway.sendMsg = Group.prototype.sendMsg
@@ -582,58 +626,50 @@ if (zai_name !== "miao-yunzai") {
      * @param dec 转发描述
      * @param msgsscr 转发信息是否伪装
      */
-    common.makeForwardMsg = async function makeForwardMsg(e, msg = [], dec = '', msgsscr = false) {
+    /** common转发 */
+    common.makeForwardMsg = async function (e, msg = [], dec = '', msgsscr = false) {
+        return await Yunzai.makeForwardMsg(e, msg, dec, msgsscr)
+    }
+    /** 日志 */
+    const sendLog = (await import("../../other/sendLog.js")).sendLog
+    sendLog.prototype.makeForwardMsg = async function (title, msg) {
+        return await Yunzai.makeForwardMsg(this.e, [title, msg], title, false)
+    }
 
-        if (!Array.isArray(msg)) msg = [msg]
+    /** 更新日志 */
+    update.prototype.makeForwardMsg = async function (title, msg = [], dec = '', msgsscr = false) {
+        return await Yunzai.makeForwardMsg(this.e, [title, msg], title, msgsscr)
+    }
 
-        let name = msgsscr ? e.sender.card || e.user_id : Bot.nickname
-        let id = msgsscr ? e.user_id : Bot.uin
+    /** 表情列表 */
+    const add = (await import("../../system/add.js")).add
+    add.prototype.makeForwardMsg = async function (qq, title, msg, end = '') {
+        return await Yunzai.makeForwardMsg(this.e, [title, msg], title, false)
+    }
 
-        if (e.isGroup) {
-            let info = await e.bot.getGroupMemberInfo(e.group_id, id)
-            name = info.card || info.nickname
+    /** 角色别名 */
+    const abbrSet = (await import("../../genshin/apps/abbrSet.js")).abbrSet
+    abbrSet.prototype.abbrList = async function () {
+        let gsCfg = (await import("../../genshin/model/gsCfg.js")).default
+        let role = gsCfg.getRole(this.e.msg, '#|别名|昵称')
+
+        if (!role) return false
+
+        let name = gsCfg.getdefSet('role', 'name')[role.roleId]
+        let nameUser = gsCfg.getConfig('role', 'name')[role.name] ?? []
+
+        let list = lodash.uniq([...name, ...nameUser])
+
+        let msg = []
+        for (let i in list) {
+            let num = Number(i) + 1
+            msg.push(`${num}.${list[i]}\n`)
         }
 
-        let userInfo = {
-            user_id: id,
-            nickname: name
-        }
+        let title = `${role.name}别名，${list.length}个`
+        msg = await Yunzai.makeForwardMsg(this.e, msg, title, false)
 
-        let forwardMsg = []
-        for (const message of msg) {
-            if (!message) continue
-            forwardMsg.push({
-                ...userInfo,
-                message: message
-            })
-        }
-
-
-        /** 制作转发内容 */
-        if (e?.group?.makeForwardMsg) {
-            forwardMsg = await e.group.makeForwardMsg(forwardMsg)
-        } else if (e?.friend?.makeForwardMsg) {
-            forwardMsg = await e.friend.makeForwardMsg(forwardMsg)
-        } else {
-            return msg.join('\n')
-        }
-
-        if (dec) {
-            /** 处理描述 */
-            if (typeof (forwardMsg.data) === 'object') {
-                let detail = forwardMsg.data?.meta?.detail
-                if (detail) {
-                    detail.news = [{ text: dec }]
-                }
-            } else {
-                forwardMsg.data = forwardMsg.data
-                    .replace(/\n/g, '')
-                    .replace(/<title color="#777777" size="26">(.+?)<\/title>/g, '___')
-                    .replace(/___+/, `<title color="#777777" size="26">${dec}</title>`)
-            }
-        }
-
-        return forwardMsg
+        await this.e.reply(msg)
     }
 }
 

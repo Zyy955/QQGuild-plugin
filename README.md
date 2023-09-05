@@ -8,23 +8,20 @@ QQ交流群~欢迎加入：`884587317`
 
 ![Visitor Count](https://profile-counter.glitch.me/Zyy955-QQGuild-plugin/count.svg)
 
-<details><summary>咕咕咕~：</summary>
 - [√] 基础消息收发
 - [√] 撤回消息
 - [√] 引用消息
 - [√] 消息转发 
-    - [ ] 优化消息转发逻辑 主流插件基本已经支持...
-    - [√] `xiaoyao-cvs-plugin`插件的`#刷新ck`指令暂未适配...等待pr通过，可正常使用指令
-- [√] 根据api返回的状态码对图片进行缩放后重新发送图片...例如`xiaoyao-cvs-plugin`的星铁图鉴
-- [√] 替换url中成为链接的字符，使其可以正常发送... 
+- [√] 将url转为二维码发送、可在`config.yaml` 设置白名单
 - [√] 将发送失败状态码和原因通过图片进行回复用户...
 - [√] 可控制台执行`#QQ频道设置...`
-- [√] 适配`Bot.pickGroup(group_id).sendMsg("QQGuild-plugin：主动消息")`方法
-    - 私聊主动消息不打算适配 官方api只允许机器人每天向单个用户推送两条主动消息
+- [√] 适配`Bot.pickGroup(group_id).sendMsg("主动消息")`方法
 - [ ] 适配设置、删除精华 应该不适配主体方法，会由插件自身完成...(再看)
-- [√] 适配`设置主人`插件
-
-</details>
+- [√] 支持`xiaoyao-cvs-plugin`所有功能，星铁图鉴会默认压缩图片大小
+- [√] 适配`ChatGpt-plugin`插件...可能连续对话还未适配：未经测试...
+- [√] 适配椰奶插件`#禁言`、`解禁`、`#踢`、`违禁词`
+- [√] 支持喵喵维护版`云崽` => `喵云崽`
+  - [√] 劫持`喵云崽`本体所有转发消息，使所有转发消息可正常发送
 
 
 # 使用必读
@@ -39,7 +36,7 @@ QQ交流群~欢迎加入：`884587317`
 curl -o "./apps.js" "https://gitee.com/Zyy955/Yunzai-Bot-plugin/raw/main/apps.js"
 ```
 
-## 安装插件
+## 1.安装插件
 
 在`Yunzai-Bot`根目录执行，任选其一
 
@@ -53,7 +50,7 @@ Github：
 git clone --depth=1 https://github.com/Zyy955/QQGuild-plugin ./plugins/QQGuild-plugin && pnpm install -P
 ```
 
-## 机器人指令配置
+## 2.机器人指令配置
 
 <details><summary>展开/收起</summary>
 
