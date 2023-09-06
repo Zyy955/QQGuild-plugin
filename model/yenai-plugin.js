@@ -4,9 +4,10 @@ let yenai_plugin = {
     async yenai() {
         const YenaiClass = (await import("../../yenai-plugin/model/GroupAdmin.js")).default
         const cfg = (await import("../../../lib/config/config.js")).default
+        /** 保存原有方法 */
         const yenai_old = {
-            muteMember: YenaiClass.muteMember,
-            kickMember: YenaiClass.kickMember,
+            muteMember: YenaiClass.prototype.muteMember,
+            kickMember: YenaiClass.prototype.kickMember,
         }
         /** 踹 */
         YenaiClass.prototype.kickMember = async function (groupId, userId, executor) {
