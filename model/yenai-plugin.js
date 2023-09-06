@@ -28,7 +28,7 @@ let yenai_plugin = {
                 await QQGuild.bot.deleteGuildMember(appID, guildID, userId)
                 return '已把这个坏淫踢掉惹！！！'
             } else {
-                yenai_old.kickMember(groupId, userId, executor)
+                return yenai_old.kickMember.call(this, groupId, userId, executor)
             }
         }
         /** 禁言 */
@@ -50,7 +50,7 @@ let yenai_plugin = {
                     : `已把「${user.nick}」扔进了小黑屋( ･_･)ﾉ⌒●~*`
 
             } else {
-                yenai_old.muteMember(groupId, userId, executor, time = 300, unit = '秒')
+                return yenai_old.muteMember.call(this, groupId, userId, executor, time, unit)
             }
         }
     },
