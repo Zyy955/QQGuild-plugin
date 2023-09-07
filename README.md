@@ -36,6 +36,8 @@ QQ交流群~欢迎加入：`884587317`
 curl -o "./apps.js" "https://gitee.com/Zyy955/Yunzai-Bot-plugin/raw/main/apps.js"
 ```
 
+`请给予机器人基础的权限...什么权限都没有的发个鬼消息啊= =`
+
 ## 1.安装插件
 
 在`Yunzai-Bot`根目录执行，任选其一

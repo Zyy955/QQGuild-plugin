@@ -61,34 +61,6 @@ export let QQGuild_Bot = {
             /** 创建 websocket 连接 */
             BotCfg[appID].ws = createWebsocket(BotCfg[appID])
 
-            /** 加载机器人所在频道、将对应的子频道信息存入变量中用于后续调用 */
-            const meGuilds = await QQGuild.bot.meGuilds(appID)
-            for (let guildsData of meGuilds) {
-                const channelList = await QQGuild.bot.channels(appID, guildsData.id)
-                const guildInfo = { ...guildsData, channels: {} }
-
-                /** 保存机器人名称、id */
-                const user = await QQGuild.bot.me(appID)
-                QQGuild.BotCfg[appID].id = user.id
-                QQGuild.BotCfg[appID].name = user.username
-
-                /** 添加群成员列表到Bot.gl中，用于主动发送消息 */
-                for (const i of channelList)
-                    Bot.gl.set(`${i.guild_id}-${i.id}`, {
-                        group_id: `${i.guild_id}-${i.id}`,
-                        guild_id: i.guild_id,
-                        channel_id: i.id,
-                        group_name: i.name,
-                    })
-
-                for (let subChannel of channelList) { guildInfo.channels[subChannel.id] = subChannel.name }
-                QQGuild.guilds[guildsData.id] = guildInfo
-                QQGuild.guilds[guildsData.id].appID = appID
-                /** 判断机器人是否为管理员 */
-                const admin_bot = await QQGuild.bot.guildMember(appID, guildsData.id, user.id)
-                QQGuild.guilds[guildsData.id].admin = admin_bot.roles.includes("2") ? true : false
-            }
-
             /** 建立ws链接 监听bot频道列表、频道资料、列表变化事件 */
             BotCfg[appID].ws.on('GUILDS', (data) => { data.appID = appID, this.log_msg(data) })
             /** 建立ws链接 监听频道成员变化事件 */
@@ -103,7 +75,47 @@ export let QQGuild_Bot = {
             BotCfg[appID].ws.on('GUILD_MESSAGE_REACTIONS', (data) => { data.appID = appID, this.log_msg(data) })
             /** 太快了 太快了！ */
             await new Promise((resolve) => setTimeout(resolve, 1000))
-            logger.mark(logger.green(`Bot：${appID} 连接成功~`))
+
+
+            /** 加载机器人所在频道、将对应的子频道信息存入变量中用于后续调用 */
+            const meGuilds = await QQGuild.bot.meGuilds(appID)
+
+            for (let guildsData of meGuilds) {
+                /** 保存一些初始配置 */
+                const guildInfo = { ...guildsData, channels: {} }
+                QQGuild.guilds[guildsData.id] = guildInfo
+                QQGuild.guilds[guildsData.id].appID = appID
+
+                /** 获取保存机器人自身信息 */
+                const user = await QQGuild.bot.me(appID)
+                QQGuild.BotCfg[appID].id = user.id
+                QQGuild.BotCfg[appID].name = user.username
+
+                /** 首先判断管理员是否为管理 */
+                try {
+                    const bot_config = await QQGuild.bot.guildMember(appID, guildsData.id, user.id)
+                    QQGuild.guilds[guildsData.id].admin = bot_config.roles.includes("2") ? true : false
+                } catch (err) {
+                    QQGuild.guilds[guildsData.id].admin = false
+                }
+
+                try {
+                    const channelList = await QQGuild.bot.channels(appID, guildsData.id)
+                    /** 添加群成员列表到Bot.gl中，用于主动发送消息 */
+                    for (const i of channelList)
+                        Bot.gl.set(`${i.guild_id}-${i.id}`, {
+                            group_id: `${i.guild_id}-${i.id}`,
+                            guild_id: i.guild_id,
+                            channel_id: i.id,
+                            group_name: i.name,
+                        })
+
+                    for (let subChannel of channelList) { guildInfo.channels[subChannel.id] = subChannel.name }
+                } catch (err) {
+                    logger.error(`QQ频道机器人 [${user.username}(${appID}) 无权在 [${guildsData.name}] 获取子频道列表...请在机器人设置-权限设置-频道权限中，给予基础权限...`)
+                }
+                logger.mark(logger.green(`Bot：${appID} 连接成功~`))
+            }
         }
     },
     /** 根据对应的事件进行打印日志和做对应的处理 */
@@ -119,11 +131,11 @@ export let QQGuild_Bot = {
         let op_user_id = GuildId ? await QQGuild.bot.op_user_id(msg) : null
 
         /** 获取频道名称 */
-        let Guild_name = GuildId ? QQGuild.guilds?.[GuildId]?.name : null
+        let Guild_name = GuildId ? (QQGuild.guilds?.[GuildId].name || GuildId) : GuildId
         /** 获取子频道名称 */
-        let channel_name = GuildId && channel_id ? QQGuild.guilds?.[GuildId]?.channels?.[channel_id] : null
+        let channel_name = GuildId && channel_id ? (QQGuild.guilds[GuildId].channels[channel_id] || channel_id) : channel_id
         /** 操作人名称 */
-        let op_user_name = op_user_id ? (await QQGuild.bot.guildMember(appID, GuildId, op_user_id)).nick : null
+        let op_user_name = op_user_id ? ((await QQGuild.bot.guildMember(appID, GuildId, op_user_id)).nick || op_user_id) : op_user_id
         /** 用户名称 */
         let user_name = msg.author?.username || msg.message?.author?.username || msg.user?.username
         if (!user_name || user_name === "") {
@@ -136,10 +148,10 @@ export let QQGuild_Bot = {
             GuildId: GuildId,
             channel_id: channel_id,
             op_user_id: op_user_id,
-            Guild_name: Guild_name || "",
-            channel_name: channel_name || "",
-            op_user_name: op_user_name || "",
-            user_name: user_name || ""
+            Guild_name: Guild_name,
+            channel_name: channel_name,
+            op_user_name: op_user_name,
+            user_name: user_name
         }
 
         switch (data.eventType) {
@@ -378,6 +390,7 @@ export let QQGuild_Bot = {
             if (urlRegex.test(msg)) {
                 /** 将url转二维码 */
                 return msg.replace(urlRegex, url => {
+                    logger.info(logger.green(`初始URL：${url}`))
                     qrcode.toBuffer(url, {
                         errorCorrectionLevel: 'H',
                         type: 'png',
