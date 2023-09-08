@@ -7,7 +7,6 @@
             margin: 20px;
             padding: 20px;
             max-width: 800px;
-            max-height: 800px;
             width: auto;
             height: auto;
         }
@@ -89,22 +88,29 @@
             text-align: center;
             padding-left: 20px
         }
+
+        .normal-text {
+            word-wrap: break-word;
+            line-height: 3;
+        }
     </style>
 
     <script>
         window.onload = function () {
             const old_msg = "{{old_msg}}"
-            const paragraphs = old_msg.split('\n\n')
-            const message_div = document.querySelectorAll('.message')
-            // 创建<P>标签
-            for (let i = 0; i < message_div.length; i++) {
-                let div = message_div[i]
-                const list = paragraphs[i].split('\n')
-                for (let i = 0; i < list.length; i++) {
-                    const p = document.createElement('p')
-                    p.textContent = list[i]
-                    div.appendChild(p)
+            const msg_split = old_msg.split('\n\n')
+            const old_div = document.getElementById('msg')
+            // 创建并插入div
+            for (let i = 0; i < msg_split.length; i++) {
+                const div = document.createElement('div')
+                div.classList.add('normal-text')
+
+                const list = msg_split[i].split('\n')
+                for (let j = 0; j < list.length; j++) {
+                    const text = document.createTextNode(list[j])
+                    div.appendChild(text)
                 }
+                old_div.appendChild(div)
             }
         }
     </script>
@@ -119,8 +125,9 @@
         <p><b>错误标识符: </b>{{Api_err.traceid}}</p>
     </div>
     {{/if}}
-    <div class="message">
+    <div class="message" id="msg">
         <h4>原始消息：</h4>
     </div>
-    <div class="author"><b>Created By Yunzai-Bot & QQGulid-plugin <span>0.2.1</span></b></div>
+    <div class="author"><b>Created By {{Yz.name}} <span>{{Yz.version}}</span> & QQGulid-plugin
+            <span>{{Yz.GQ_version}}</span></b></div>
 </body>

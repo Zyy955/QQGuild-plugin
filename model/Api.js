@@ -3,232 +3,232 @@ let QQGuildApi = {
 
     /* 获取当前用户信息 */
     async me(id) {
-        let { data } = await QQGuild.BotCfg[id].client.meApi.me()
+        let { data } = await QQGuild.ws[id].client.meApi.me()
         return data
     },
     /* 获取频道列表 */
     async meGuilds(id) {
-        let { data } = await QQGuild.BotCfg[id].client.meApi.meGuilds()
+        let { data } = await QQGuild.ws[id].client.meApi.meGuilds()
         return data
     },
     /* 获取频道详情 */
     async guild(id, guildId) {
-        let { data } = await QQGuild.BotCfg[id].client.guildApi.guild(guildId)
+        let { data } = await QQGuild.ws[id].client.guildApi.guild(guildId)
         return data
     },
     /* 获取子频道列表 */
     async channels(id, guildId) {
-        let { data } = await QQGuild.BotCfg[id].client.channelApi.channels(guildId)
+        let { data } = await QQGuild.ws[id].client.channelApi.channels(guildId)
         return data
     },
     /* 获取子频道详情 */
     async channel(id, channelId) {
-        let { data } = await QQGuild.BotCfg[id].client.channelApi.channel(channelId)
+        let { data } = await QQGuild.ws[id].client.channelApi.channel(channelId)
         return data
     },
     /* 创建子频道 */
     async postChannel(id, guildId, channel) {
-        let { data } = await QQGuild.BotCfg[id].client.channelApi.postChannel(guildId, channel)
+        let { data } = await QQGuild.ws[id].client.channelApi.postChannel(guildId, channel)
         return data
     },
     /* 修改子频道 */
     async patchChannel(id, channelId, channel) {
-        let { data } = await QQGuild.BotCfg[id].client.channelApi.patchChannel(channelId, channel)
+        let { data } = await QQGuild.ws[id].client.channelApi.patchChannel(channelId, channel)
         return data
     },
     /* 删除子频道 */
     async deleteChannel(id, channelId) {
-        let { data } = await QQGuild.BotCfg[id].client.channelApi.deleteChannel(channelId)
+        let { data } = await QQGuild.ws[id].client.channelApi.deleteChannel(channelId)
         return data
     },
     /* 获取频道成员列表 */
     async guildMembers(id, guildId, queryParams) {
-        let { data } = await QQGuild.BotCfg[id].client.guildApi.guildMembers(guildId, queryParams)
+        let { data } = await QQGuild.ws[id].client.guildApi.guildMembers(guildId, queryParams)
         return data
     },
     /* 获取频道成员详情 */
     async guildMember(id, guildId, userId) {
-        let { data } = await QQGuild.BotCfg[id].client.guildApi.guildMember(guildId, userId)
+        let { data } = await QQGuild.ws[id].client.guildApi.guildMember(guildId, userId)
         return data
     },
     /* 删除频道成员 */
     async deleteGuildMember(id, guildId, userId) {
-        let { data } = await QQGuild.BotCfg[id].client.guildApi.deleteGuildMember(guildId, userId)
+        let { data } = await QQGuild.ws[id].client.guildApi.deleteGuildMember(guildId, userId)
         return data
     },
     /* 获取语音子频道在线成员列表 */
     async guildVoiceMembers(id, channelID) {
-        let { data } = await QQGuild.BotCfg[id].client.guildApi.guildVoiceMembers(channelID)
+        let { data } = await QQGuild.ws[id].client.guildApi.guildVoiceMembers(channelID)
         return data
     },
     /* 获取频道身份组列表 */
     async roles(id, guildId) {
-        let { data } = await QQGuild.BotCfg[id].client.roleApi.roles(guildId)
+        let { data } = await QQGuild.ws[id].client.roleApi.roles(guildId)
         return data
     },
     /** 创建频道身份组 */
     async postRole(id, guildId, roleInfo) {
-        let { data } = await QQGuild.BotCfg[id].client.roleApi.postRole(guildId, roleInfo)
+        let { data } = await QQGuild.ws[id].client.roleApi.postRole(guildId, roleInfo)
         return data
     },
     /* 修改频道身份组 */
     async dpatchRole(id, guildId, roleId, roleInfo) {
-        let { data } = await QQGuild.BotCfg[id].client.roleApi.patchRole(guildId, roleId, roleInfo)
+        let { data } = await QQGuild.ws[id].client.roleApi.patchRole(guildId, roleId, roleInfo)
         return data
     },
     /* 删除频道身份组 */
     async deleteRole(id, guildId, roleId) {
-        let { data } = await QQGuild.BotCfg[id].client.roleApi.deleteRole(guildId, roleId)
+        let { data } = await QQGuild.ws[id].client.roleApi.deleteRole(guildId, roleId)
         return data
     },
     /* 创建频道身份组成员 */
     async memberAddRole(id, guildId, roleId, userId, channelId) {
-        let { data } = await QQGuild.BotCfg[id].client.memberApi.memberAddRole(guildId, roleId, userId, channelId)
+        let { data } = await QQGuild.ws[id].client.memberApi.memberAddRole(guildId, roleId, userId, channelId)
         return data
     },
     /* 删除频道身份组成员 */
     async memberDeleteRole(id, guildId, roleId, userId, channelId) {
-        let { data } = await QQGuild.BotCfg[id].client.memberApi.memberDeleteRole(guildId, roleId, userId, channelId)
+        let { data } = await QQGuild.ws[id].client.memberApi.memberDeleteRole(guildId, roleId, userId, channelId)
         return data
     },
     /* 获取子频道权限 */
     async channelPermissions(id, channelId, userId) {
-        let { data } = await QQGuild.BotCfg[id].client.channelPermissionsApi.channelPermissions(channelId, userId)
+        let { data } = await QQGuild.ws[id].client.channelPermissionsApi.channelPermissions(channelId, userId)
         return data
     },
     /* 修改子频道权限 */
     async putChannelPermissions(id, channelId, userId, remove) {
-        let { data } = await QQGuild.BotCfg[id].client.channelPermissionsApi.putChannelPermissions(channelId, userId, remove)
+        let { data } = await QQGuild.ws[id].client.channelPermissionsApi.putChannelPermissions(channelId, userId, remove)
         return data
     },
     /* 获取子频道身份组权限 */
     async channelRolePermissions(id, channelId, roleId) {
-        let { data } = await QQGuild.BotCfg[id].client.channelPermissionsApi.channelRolePermissions(channelId, roleId)
+        let { data } = await QQGuild.ws[id].client.channelPermissionsApi.channelRolePermissions(channelId, roleId)
         return data
     },
     /* 修改子频道身份组权限 */
     async putChannelRolePermissions(id, channelId, roleId, remove) {
-        let { data } = await QQGuild.BotCfg[id].client.channelPermissionsApi.putChannelRolePermissions(channelId, roleId, remove)
+        let { data } = await QQGuild.ws[id].client.channelPermissionsApi.putChannelRolePermissions(channelId, roleId, remove)
         return data
     },
     /* 获取指定消息 */
     async message(id, channelID, messageID) {
-        let { data } = await QQGuild.BotCfg[id].client.messageApi.message(channelID, messageID)
+        let { data } = await QQGuild.ws[id].client.messageApi.message(channelID, messageID)
         return data
     },
     /* 发送消息 */
     async postMessage(id, channelID, message) {
-        let { data } = await QQGuild.BotCfg[id].client.messageApi.postMessage(channelID, message)
+        let { data } = await QQGuild.ws[id].client.messageApi.postMessage(channelID, message)
         return data
     },
     /* 撤回消息 */
     async deleteMessage(id, channelID, messageID, hideTip) {
-        let { data } = await QQGuild.BotCfg[id].client.messageApi.deleteMessage(channelID, messageID, hideTip)
+        let { data } = await QQGuild.ws[id].client.messageApi.deleteMessage(channelID, messageID, hideTip)
         return data
     },
     /* 创建私信会话 */
     async createDirectMessage(id, dmObj) {
-        let { data } = await QQGuild.BotCfg[id].client.directMessageApi.createDirectMessage(dmObj)
+        let { data } = await QQGuild.ws[id].client.directMessageApi.createDirectMessage(dmObj)
         return data
     },
     /* 发送私信消息 */
     async postDirectMessage(id, guildId, msgObj) {
-        const res = await QQGuild.BotCfg[id].client.directMessageApi.postDirectMessage(guildId, msgObj)
+        const res = await QQGuild.ws[id].client.directMessageApi.postDirectMessage(guildId, msgObj)
         return res
     },
     /* 发表表情表态 */
     async postReaction(id, channelId, reactionObj) {
-        let { data } = await QQGuild.BotCfg[id].client.reactionApi.postReaction(channelId, reactionObj)
+        let { data } = await QQGuild.ws[id].client.reactionApi.postReaction(channelId, reactionObj)
         return data
     },
     /* 删除表情表态 */
     async deleteReaction(id, channelId, reactionObj) {
-        let { data } = await QQGuild.BotCfg[id].client.reactionApi.deleteReaction(channelId, reactionObj)
+        let { data } = await QQGuild.ws[id].client.reactionApi.deleteReaction(channelId, reactionObj)
         return data
     },
     /* 拉取表情表态用户列表 */
     async getReactionUserList(id, channelId, reactionObj, options) {
-        let { data } = await QQGuild.BotCfg[id].client.reactionApi.getReactionUserList(channelId, reactionObj, options)
+        let { data } = await QQGuild.ws[id].client.reactionApi.getReactionUserList(channelId, reactionObj, options)
         return data
     },
     /* 禁言全员 */
     async muteAll(id, guildID, options) {
-        let { data } = await QQGuild.BotCfg[id].client.muteApi.muteAll(guildID, options)
+        let { data } = await QQGuild.ws[id].client.muteApi.muteAll(guildID, options)
         return data
     },
     /* 禁言指定成员 */
     async muteMember(id, guildID, userID, options) {
-        let { data } = await QQGuild.BotCfg[id].client.muteApi.muteMember(guildID, userID, options)
+        let { data } = await QQGuild.ws[id].client.muteApi.muteMember(guildID, userID, options)
         return data
     },
     /* 禁言批量成员 */
     async muteMembers(id, guildID, userIDList, options) {
-        let { data } = await QQGuild.BotCfg[id].client.muteApi.muteMembers(guildID, userIDList, options)
+        let { data } = await QQGuild.ws[id].client.muteApi.muteMembers(guildID, userIDList, options)
         return data
     },
     /* 创建频道全局公告 */
     async postGuildAnnounce(id, guildId, channelId, messageId) {
-        let { data } = await QQGuild.BotCfg[id].client.announceApi.postGuildAnnounce(guildId, channelId, messageId)
+        let { data } = await QQGuild.ws[id].client.announceApi.postGuildAnnounce(guildId, channelId, messageId)
         return data
     },
     /* 创建频道公告推荐子频道 */
     async postGuildRecommend(id, guildId, recommendObj) {
-        let { data } = await QQGuild.BotCfg[id].client.announceApi.postGuildRecommend(guildId, recommendObj)
+        let { data } = await QQGuild.ws[id].client.announceApi.postGuildRecommend(guildId, recommendObj)
         return data
     },
     /* 删除频道全局公告 */
     async deleteGuildAnnounce(id, guildId, messageId) {
-        let { data } = await QQGuild.BotCfg[id].client.announceApi.deleteGuildAnnounce(guildId, messageId)
+        let { data } = await QQGuild.ws[id].client.announceApi.deleteGuildAnnounce(guildId, messageId)
         return data
     },
     /* 创建子频道公告 */
     async postChannelAnnounce(id, channelId, messageId) {
-        let { data } = await QQGuild.BotCfg[id].client.announceApi.postChannelAnnounce(channelId, messageId)
+        let { data } = await QQGuild.ws[id].client.announceApi.postChannelAnnounce(channelId, messageId)
         return data
     },
     /* 删除子频道公告 */
     async deleteChannelAnnounce(id, channelId, messageId) {
-        let { data } = await QQGuild.BotCfg[id].client.announceApi.deleteChannelAnnounce(channelId, messageId)
+        let { data } = await QQGuild.ws[id].client.announceApi.deleteChannelAnnounce(channelId, messageId)
         return data
     },
     /* 获取精华消息 */
     async pinsMessage(id, channelId) {
-        let { data } = await QQGuild.BotCfg[id].client.pinsMessageApi.pinsMessage(channelId)
+        let { data } = await QQGuild.ws[id].client.pinsMessageApi.pinsMessage(channelId)
         return data
     },
     /* 创建精华消息 */
     async putPinsMessage(id, channelId, messageId) {
-        let { data } = await QQGuild.BotCfg[id].client.pinsMessageApi.putPinsMessage(channelId, messageId)
+        let { data } = await QQGuild.ws[id].client.pinsMessageApi.putPinsMessage(channelId, messageId)
         return data
     },
     /* 删除精华消息 */
     async deletePinsMessage(id, channelId, messageId) {
-        let { data } = await QQGuild.BotCfg[id].client.pinsMessageApi.deletePinsMessage(channelId, messageId)
+        let { data } = await QQGuild.ws[id].client.pinsMessageApi.deletePinsMessage(channelId, messageId)
         return data
     },
     /* 音频控制 */
     async postAudio(id, channelID, audioControl) {
-        let { data } = await QQGuild.BotCfg[id].client.audioApi.postAudio(channelID, audioControl)
+        let { data } = await QQGuild.ws[id].client.audioApi.postAudio(channelID, audioControl)
         return data
     },
     /* 机器人上麦 */
     async botOnMic(id, channelID) {
-        let { data } = await QQGuild.BotCfg[id].client.audioApi.botOnMic(channelID)
+        let { data } = await QQGuild.ws[id].client.audioApi.botOnMic(channelID)
         return data
     },
     /* 机器人下麦 */
     async botOffMic(id, channelID) {
-        let { data } = await QQGuild.BotCfg[id].client.audioApi.botOffMic(channelID)
+        let { data } = await QQGuild.ws[id].client.audioApi.botOffMic(channelID)
         return data
     },
     /* 获取频道可用权限列表 */
     async permissions(id, guildID) {
-        let { data } = await QQGuild.BotCfg[id].client.guildPermissionsApi.permissions(guildID)
+        let { data } = await QQGuild.ws[id].client.guildPermissionsApi.permissions(guildID)
         return data
     },
     /* 创建频道 API 权限授权链接 */
     async postPermissionDemand(id, guildID, permissionDemandObj) {
-        let { data } = await QQGuild.BotCfg[id].client.guildPermissionsApi.postPermissionDemand(guildID, permissionDemandObj)
+        let { data } = await QQGuild.ws[id].client.guildPermissionsApi.postPermissionDemand(guildID, permissionDemandObj)
         return data
     },
     /** 从消息体中提取频道id */
@@ -265,4 +265,4 @@ let QQGuildApi = {
 }
 
 /** 加载所有方法到全局变量中 */
-QQGuild.bot = { ...QQGuildApi }
+QQGuild.api = { ...QQGuildApi }

@@ -23,9 +23,9 @@ let yenai_plugin = {
                 if (cfg.masterQQ?.includes(userId) && time != 0) throw Error('我连管理员都木有，这种事怎么可能做到的辣！！！')
 
                 /** 获取用户身份组 */
-                const user = await QQGuild.bot.guildMember(appID, guildID, userId)
+                const user = await QQGuild.api.guildMember(appID, guildID, userId)
                 if (user.roles.includes("2", "4", "5")) throw Error('这个淫系管理员辣，只有主淫和频道主才可以干ta')
-                await QQGuild.bot.deleteGuildMember(appID, guildID, userId)
+                await QQGuild.api.deleteGuildMember(appID, guildID, userId)
                 return '已把这个坏淫踢掉惹！！！'
             } else {
                 return yenai_old.kickMember.call(this, groupId, userId, executor)
@@ -42,10 +42,10 @@ let yenai_plugin = {
                 if (cfg.masterQQ?.includes(userId) && time != 0) throw Error('我连管理员都木有，这种事怎么可能做到的辣！！！')
 
                 /** 获取用户名称 */
-                const user = await QQGuild.bot.guildMember(appID, guildID, userId)
+                const user = await QQGuild.api.guildMember(appID, guildID, userId)
                 if (user.roles.includes("2", "4", "5")) throw Error('这个淫系管理员辣，只有主淫和频道主才可以干ta')
 
-                await QQGuild.bot.muteMember(appID, guildID, userId, { seconds: time })
+                await QQGuild.api.muteMember(appID, guildID, userId, { seconds: time })
                 return time == 0 ? `✅ 已把「${user.nick}」从小黑屋揪了出来(｡>∀<｡)`
                     : `已把「${user.nick}」扔进了小黑屋( ･_･)ﾉ⌒●~*`
 
