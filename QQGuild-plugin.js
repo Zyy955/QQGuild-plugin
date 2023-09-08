@@ -431,9 +431,9 @@ export let QQGuild_Bot = {
                 base64 = fs.readFileSync(img)
             }
             /** 本地文件转成base64 */
-            else if (typeof file === "string" && fs.existsSync(file)) {
+            else if (typeof file === "string" && fs.existsSync(file.replace(/^file:[/]{0,3}/, ""))) {
                 log = `[图片：${file}]`
-                base64 = fs.readFileSync(file.replace(/^file:(\/\/\/|\/\/)/, ""))
+                base64 = fs.readFileSync(file.replace(/^file:[/]{0,3}/, ""))
             }
             /** 判断url是否为白名单，否则缓存图片转为二进制 */
             else if (typeof file === "string" && /^(https|http):\/\//.test(file)) {
