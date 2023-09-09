@@ -373,8 +373,8 @@ export let ws = {
         }
 
         content = content.replace(/\n{1,2}$/g, '').replace(/\n{3,4}/g, '\n')
-        const Api_msg = { content: content, ...image || null }
-        if (!content || content === "" || Object.keys(image).length === 0) return
+        const Api_msg = { content: content, ...image }
+        if (!content && content === "" && Object.keys(image).length === 0) return
         return Api_msg
     },
     /** 对url进行特殊处理，防止发送失败 */

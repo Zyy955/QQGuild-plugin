@@ -119,6 +119,7 @@ export let Yunzai = {
             message: [...message],
             raw_message: raw_message,
             appID: appID,
+            uin: QQGuild.ws[appID].id,
             author: msg.author,
             mentions: msg.mentions,
             post_type: "message",
