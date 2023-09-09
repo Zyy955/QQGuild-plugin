@@ -152,7 +152,7 @@ export let Yunzai = {
                     return BotCfg[appID].client.messageApi.deleteMessage(msg.channel_id, msg_id, false)
                 },
                 makeForwardMsg: async (forwardMsg) => {
-                    return await e.group.makeForwardMsg(forwardMsg)
+                    return await Yunzai.makeForwardMsg(forwardMsg, data)
                 },
                 getChatHistory: (seq, num) => {
                     return ["message", "test"]
@@ -177,55 +177,7 @@ export let Yunzai = {
                     return await ws.reply(data, reply, reference)
                 },
                 makeForwardMsg: async (forwardMsg) => {
-                    const messages = {}
-                    const newmsg = []
-
-                    /** 针对无限套娃的转发进行处理 */
-                    for (const i_msg of forwardMsg) {
-                        const for_msg = i_msg.message
-                        /** 套娃转发 */
-                        if (typeof for_msg === "object" && for_msg?.data?.type === "test") {
-                            newmsg.push(...for_msg.msg)
-                        }
-                        /** 兼容喵崽更新抽卡记录 */
-                        else if (Array.isArray(for_msg)) {
-                            for_msg.forEach(i => {
-                                if (typeof i === "string") {
-                                    newmsg.push({ type: "forward", text: i.trim().replace(/^\\n{1,3}|\\n{1,3}$/g, "") })
-                                } else {
-                                    newmsg.push(i)
-                                }
-                            })
-                        }
-                        /** 优先处理日志 */
-                        else if (typeof for_msg === "object" && /^#.*日志$/.test(data.msg.content)) {
-                            const splitMsg = for_msg.split("\n").map(i => {
-                                if (!i || i.trim() === "") return
-                                if (QQGuild.config.分片转发) {
-                                    return { type: "forward", text: i.substring(0, 1000).trim().replace(/^\\n{1,3}|\\n{1,3}$/g, "") }
-                                } else {
-                                    return { type: "forward", text: i.substring(0, 100).trim().replace(/^\\n{1,3}|\\n{1,3}$/g, "") }
-                                }
-                            })
-                            newmsg.push(...splitMsg.slice(0, 50))
-                        }
-                        /** AT 表情包 */
-                        else if (typeof for_msg === "object") {
-                            newmsg.push(for_msg)
-                        }
-                        /** 普通文本 */
-                        else if (typeof for_msg === "string") {
-                            /** 正常文本 */
-                            newmsg.push({ type: "forward", text: for_msg.replace(/^\\n{1,3}|\\n{1,3}$/g, "") })
-                        }
-                        else {
-                            logger.error("未知字段，请反馈至作者：", for_msg)
-                        }
-                    }
-                    /** 对一些重复元素进行去重 */
-                    messages.msg = Array.from(new Set(newmsg.map(JSON.stringify))).map(JSON.parse)
-                    messages.data = { type: "test", text: "forward" }
-                    return messages
+                    return await Yunzai.makeForwardMsg(forwardMsg, data)
                 }
             },
             recall: () => {
@@ -269,5 +221,55 @@ export let Yunzai = {
         }
         return e
     },
+    makeForwardMsg: async (forwardMsg, data = {}) => {
+        const messages = {}
+        const newmsg = []
 
+        /** 针对无限套娃的转发进行处理 */
+        for (const i_msg of forwardMsg) {
+            const for_msg = i_msg.message
+            /** 套娃转发 */
+            if (typeof for_msg === "object" && for_msg?.data?.type === "test") {
+                newmsg.push(...for_msg.msg)
+            }
+            /** 兼容喵崽更新抽卡记录 */
+            else if (Array.isArray(for_msg)) {
+                for_msg.forEach(i => {
+                    if (typeof i === "string") {
+                        newmsg.push({ type: "forward", text: i.trim().replace(/^\\n{1,3}|\\n{1,3}$/g, "") })
+                    } else {
+                        newmsg.push(i)
+                    }
+                })
+            }
+            /** 优先处理日志 */
+            else if (typeof for_msg === "object" && /^#.*日志$/.test(data?.msg?.content)) {
+                const splitMsg = for_msg.split("\n").map(i => {
+                    if (!i || i.trim() === "") return
+                    if (QQGuild.config.分片转发) {
+                        return { type: "forward", text: i.substring(0, 1000).trim().replace(/^\\n{1,3}|\\n{1,3}$/g, "") }
+                    } else {
+                        return { type: "forward", text: i.substring(0, 100).trim().replace(/^\\n{1,3}|\\n{1,3}$/g, "") }
+                    }
+                })
+                newmsg.push(...splitMsg.slice(0, 50))
+            }
+            /** AT 表情包 */
+            else if (typeof for_msg === "object") {
+                newmsg.push(for_msg)
+            }
+            /** 普通文本 */
+            else if (typeof for_msg === "string") {
+                /** 正常文本 */
+                newmsg.push({ type: "forward", text: for_msg.replace(/^\\n{1,3}|\\n{1,3}$/g, "") })
+            }
+            else {
+                logger.error("未知字段，请反馈至作者：", for_msg)
+            }
+        }
+        /** 对一些重复元素进行去重 */
+        messages.msg = Array.from(new Set(newmsg.map(JSON.stringify))).map(JSON.parse)
+        messages.data = { type: "test", text: "forward" }
+        return messages
+    }
 }

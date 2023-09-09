@@ -108,6 +108,39 @@ export let ws = {
                 }
             }
             logger.mark(logger.green(`Bot：${QQGuild.ws[appID].name}(${appID}) 连接成功~`))
+            /** 创建一些虚假参数 用于推送米游社公告 */
+            Bot[appID] = {
+                [appID]: appID,
+                pickGroup: (groupId) => {
+                    const [guild_id, channel_id] = groupId.split('-')
+                    const data = {
+                        appID: appID,
+                        msg: {
+                            guild_id: guild_id,
+                            channel_id: channel_id
+                        },
+                        Guild: {
+                            Bot_name: `${QQGuild.ws[appID].name} `,
+                            GuildId: guild_id,
+                            channel_id: channel_id,
+                            op_user_id: "",
+                            Guild_name: "",
+                            channel_name: "",
+                            op_user_name: "",
+                            user_name: "",
+                        },
+                        eventType: "MESSAGE_CREATE"
+                    }
+                    return {
+                        sendMsg: (reply, reference = false) => {
+                            return ws.reply(data, reply, reference)
+                        },
+                        makeForwardMsg: async (forwardMsg) => {
+                            return await Yunzai.makeForwardMsg(forwardMsg)
+                        },
+                    }
+                }
+            }
         }
     },
     /** 根据对应的事件进行打印日志和做对应的处理 */
@@ -183,7 +216,7 @@ export let ws = {
             case "MESSAGE_CREATE":
                 logger.info(`${name}频道消息：[${Guild_name}-${channel_name}，${user_name}] ${this.guild_msg(msg)}`)
                 /** 解除私信 */
-                if (msg.content === "#QQ频道解除私信") return this.Sendprivate(data)
+                if (msg.content.replace(/<@!.*>/g, "").trim() === "#QQ频道解除私信") return this.Sendprivate(data)
                 /** 转换消息 交由云崽处理 */
                 PluginsLoader.deal(await Yunzai.msg(data))
                 break
@@ -226,7 +259,7 @@ export let ws = {
             case "AT_MESSAGE_CREATE":
                 logger.info(`${name}频道消息：[${Guild_name}-${channel_name}，${user_name}] ${this.guild_msg(msg)}`)
                 /** 解除私信 */
-                if (msg.content === "#QQ频道解除私信") return this.Sendprivate(data)
+                if (msg.content.replace(/<@!.*>/g, "").trim() === "#QQ频道解除私信") return this.Sendprivate(data)
                 /** 转换消息 交由云崽处理 */
                 PluginsLoader.deal(await Yunzai.msg(data))
                 break
@@ -259,6 +292,7 @@ export let ws = {
             recipient_id: msg.author.id
         }
         const newdata = await QQGuild.ws[appID].client.directMessageApi.createDirectMessage(newmsg)
+        logger.info(`${QQGuild.ws[appID].name} 发送私信消息：QQGuild-plugin：你好~`)
         await QQGuild.ws[appID].client.directMessageApi
             .postDirectMessage(newdata.data.guild_id, { content: " QQGuild-plugin：你好~" })
     },
@@ -421,7 +455,11 @@ export let ws = {
             let img = "./plugins/QQGuild-plugin/data/image/"
             /** 套娃的二进制base64 */
             if (msg.file.type === "Buffer") {
-                base64 = msg.file.data
+                if (!(msg.file.data instanceof Uint8Array)) {
+                    base64 = new Uint8Array(msg.file.data)
+                } else {
+                    base64 = msg.file.data
+                }
             }
             /** 二进制转字符串 */
             else if (file instanceof Uint8Array) {
@@ -547,7 +585,7 @@ export let ws = {
                 ? res = await QQGuild.ws[appID].client.directMessageApi.postDirectMessage(msg.guild_id, SendMsg)
                 : res = await QQGuild.ws[appID].client.messageApi.postMessage(msg.channel_id, SendMsg)
         } catch (error) {
-            logger.error(`${Bot_name} 发送消息错误，正在转成图片重新发送...\n错误信息：`, error)
+            logger.error(`${Bot_name}发送消息错误，正在转成图片重新发送...\n错误信息：`, error)
             /** 转换为图片发送 */
             let Resend = new FormData()
             if (msg?.id) Resend.set("msg_id", msg.id)
