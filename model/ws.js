@@ -106,8 +106,8 @@ export let ws = {
                 } catch (err) {
                     logger.error(`QQ频道机器人 [${user.username}(${appID}) 无权在 [${guildsData.name}] 获取子频道列表...请在机器人设置-权限设置-频道权限中，给予基础权限...`)
                 }
-                logger.mark(logger.green(`Bot：${appID} 连接成功~`))
             }
+            logger.mark(logger.green(`Bot：${QQGuild.ws[appID].name}(${appID}) 连接成功~`))
         }
     },
     /** 根据对应的事件进行打印日志和做对应的处理 */
