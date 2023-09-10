@@ -12,7 +12,7 @@ let yenai_plugin = {
         /** 踹 */
         YenaiClass.prototype.kickMember = async function (groupId, userId, executor) {
             if (groupId.toString().length > 10 || groupId.toString().includes("-")) {
-                const ids = groupId.split("-")
+                const ids = groupId.replace("qg_", "").split("-")
                 const [guildID, channels] = ids
                 /** 获取appID */
                 let appID = QQGuild.guilds[guildID].appID || null
@@ -34,7 +34,7 @@ let yenai_plugin = {
         /** 禁言 */
         YenaiClass.prototype.muteMember = async function (groupId, userId, executor, time = 300, unit = '秒') {
             if (groupId.toString().length > 10 || groupId.toString().includes("-")) {
-                const ids = groupId.split("-")
+                const ids = groupId.replace("qg_", "").split("-")
                 const [guildID, channels] = ids
                 /** 获取appID */
                 let appID = QQGuild.guilds[guildID].appID || null

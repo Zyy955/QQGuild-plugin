@@ -116,6 +116,7 @@ export let Yunzai = {
         }
 
         let e = {
+            adapter: "QQGuild",
             message: [...message],
             raw_message: raw_message,
             appID: appID,
@@ -124,7 +125,7 @@ export let Yunzai = {
             mentions: msg.mentions,
             post_type: "message",
             message_id: msg.id,
-            user_id: msg.author.id,
+            user_id: "qg_" + msg.author.id,
             time,
             message_type: "group",
             sub_type: "normal",
@@ -134,7 +135,7 @@ export let Yunzai = {
                 card: msg.author.username,
                 role,
             },
-            group_id: msg.guild_id + "-" + msg.channel_id,
+            group_id: "qg_" + msg.guild_id + "-" + msg.channel_id,
             guild_id: msg.guild_id,
             channel_id: msg.channel_id,
             group_name: `${QQGuild.guilds[msg.guild_id]?.channels[msg.channel_id] || '私信'}`,

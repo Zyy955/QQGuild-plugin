@@ -5,6 +5,7 @@ import "./model/puppeteer.js"
 import "./model/ws.js"
 import fs from "fs"
 import Yaml from "yaml"
+import crypto from "crypto"
 import { ws } from "./model/ws.js"
 import { execSync } from "child_process"
 import { createInterface } from "readline"
@@ -38,6 +39,10 @@ export class QQGuildBot extends plugin {
                 {
                     reg: /^#设置主人$/,
                     fnc: 'master'
+                },
+                {
+                    reg: /^#(我的|当前)?(id|信息)$/gi,
+                    fnc: 'qg_id'
                 }
             ]
         })
@@ -122,6 +127,11 @@ export class QQGuildBot extends plugin {
             this.setContext('SetAdmin')
             e.reply([segment.at(e.user_id), `请输入控制台的验证码`])
         }
+    }
+
+    async qg_id(e) {
+        const msg = e?.group_id ? `\n当前群聊ID：${e.group_id}` : ""
+        return e.reply([segment.at(e.user_id), `\n您的个人ID：${e.user_id}${msg}`])
     }
 
     SetAdmin() {

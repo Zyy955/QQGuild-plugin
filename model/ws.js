@@ -112,7 +112,7 @@ export let ws = {
             Bot[appID] = {
                 [appID]: appID,
                 pickGroup: (groupId) => {
-                    const [guild_id, channel_id] = groupId.split('-')
+                    const [guild_id, channel_id] = groupId.replace("qg_", "").split('-')
                     const data = {
                         appID: appID,
                         msg: {
@@ -124,8 +124,8 @@ export let ws = {
                             GuildId: guild_id,
                             channel_id: channel_id,
                             op_user_id: "",
-                            Guild_name: "",
-                            channel_name: "",
+                            Guild_name: guild_id,
+                            channel_name: channel_id,
                             op_user_name: "",
                             user_name: "",
                         },
@@ -369,9 +369,9 @@ export let ws = {
                     if (i.text === msg?.author?.username)
                         content += `<@${msg?.author?.id}>`
                     else if (i.qq === 0 || i.qq) {
-                        content += `<@${i.id}>`
+                        content += `<@${i.id.replace("qg_", "")}>`
                     } else {
-                        content += `<@${i.qq}>`
+                        content += `<@${i.qq.replace("qg_", "")}>`
                     }
                     break
                 case "face":
@@ -577,13 +577,16 @@ export let ws = {
     async postMsg(data, SendMsg) {
         const { msg, appID } = data
         const Bot_name = `${QQGuild.ws[appID].name} `
+        const guild_id = msg.guild_id.replace("qg_", "")
+        const channel_id = msg.channel_id.replace("qg_", "")
+
         /** 发送消息并储存res */
         let res
         try {
             /** 判断频道还是私聊 */
             data.eventType === "DIRECT_MESSAGE_CREATE"
-                ? res = await QQGuild.ws[appID].client.directMessageApi.postDirectMessage(msg.guild_id, SendMsg)
-                : res = await QQGuild.ws[appID].client.messageApi.postMessage(msg.channel_id, SendMsg)
+                ? res = await QQGuild.ws[appID].client.directMessageApi.postDirectMessage(guild_id, SendMsg)
+                : res = await QQGuild.ws[appID].client.messageApi.postMessage(channel_id, SendMsg)
         } catch (error) {
             logger.error(`${Bot_name}发送消息错误，正在转成图片重新发送...\n错误信息：`, error)
             /** 转换为图片发送 */
@@ -593,8 +596,8 @@ export let ws = {
 
             /** 判断频道还是私聊 */
             data.eventType === "DIRECT_MESSAGE_CREATE"
-                ? res = await QQGuild.ws[appID].client.directMessageApi.postDirectMessage(msg.guild_id, Resend)
-                : res = await QQGuild.ws[appID].client.messageApi.postMessage(msg.channel_id, Resend)
+                ? res = await QQGuild.ws[appID].client.directMessageApi.postDirectMessage(guild_id, Resend)
+                : res = await QQGuild.ws[appID].client.messageApi.postMessage(channel_id, Resend)
         }
         /** 返回消息id给撤回用？ */
         return {
