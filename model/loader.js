@@ -149,8 +149,7 @@ let _loader = {
                     }
                     if (at === true) {
                         if (typeof e.user_id === "number")
-                            at = Number(e.user_id) || e.user_id
-                        else at = e.user_id.trim()
+                            at = Number(e.user_id) || string(e.user_id)
                     } else if (!isNaN(at)) {
                         if (e.isGuild) {
                             text = e.sender?.nickname
@@ -569,17 +568,17 @@ const YzBot = {
 /** 劫持修改主体一些基础处理方法 */
 if (QQGuild.Yz.name === "Miao-Yunzai") {
     /** 劫持回复方法 */
-    PluginsLoader.reply = async function (e) {
+    PluginsLoader.reply = function (e) {
         if (e?.adapter) return _loader.reply.call(this, e)
         return YzBot.reply.call(this, e)
     }
     /** 劫持处理消息 */
-    PluginsLoader.dealMsg = async function (e) {
+    PluginsLoader.dealMsg = function (e) {
         if (e?.adapter) return _loader.dealMsg.call(this, e)
         return YzBot.dealMsg.call(this, e)
     }
     /** 劫持黑白名单 */
-    PluginsLoader.checkBlack = async function (e) {
+    PluginsLoader.checkBlack = function (e) {
         if (e?.adapter) return _loader.checkBlack.call(this, e)
         return YzBot.checkBlack.call(this, e)
     }
@@ -592,17 +591,17 @@ if (QQGuild.Yz.name === "Miao-Yunzai") {
 /** 对喵云崽的转发进行劫持修改，兼容最新的icqq转发 */
 else {
     /** 劫持回复方法 */
-    PluginsLoader.reply = async function (e) {
+    PluginsLoader.reply = function (e) {
         if (e?.adapter) return _loader.Yz_reply.call(this, e)
         return YzBot.reply.call(this, e)
     }
     /** 劫持处理消息 */
-    PluginsLoader.dealMsg = async function (e) {
+    PluginsLoader.dealMsg = function (e) {
         if (e?.adapter) return _loader.Yz_dealMsg.call(this, e)
         return YzBot.dealMsg.call(this, e)
     }
     /** 劫持黑白名单 */
-    PluginsLoader.checkBlack = async function (e) {
+    PluginsLoader.checkBlack = function (e) {
         if (e?.adapter) return _loader.Yz_checkBlack.call(this, e)
         return YzBot.checkBlack.call(this, e)
     }
