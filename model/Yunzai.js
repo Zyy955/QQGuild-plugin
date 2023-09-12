@@ -116,6 +116,7 @@ export let Yunzai = {
         }
 
         let e = {
+            atBot: atme,
             adapter: "QQGuild",
             message: [...message],
             raw_message: raw_message,
