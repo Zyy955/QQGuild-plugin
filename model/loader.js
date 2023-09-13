@@ -43,7 +43,7 @@ let _loader = {
                     case 'at':
                         if (val.qq == e.bot.uin || val.qq == e.uin) {
                             e.atBot = true
-                        } else if (val.id == e.bot.tiny_id || e.uin) {
+                        } else if (val.id == e.bot.tiny_id || val.id == e.uin) {
                             e.atBot = true
                             /** 多个at 以最后的为准 */
                         } else if (val.id) {
