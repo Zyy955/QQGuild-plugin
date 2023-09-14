@@ -484,8 +484,9 @@ export let ws = {
                     url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'g')
                 if (!file.match(whiteRegex)) {
                     log = `[图片：${img}]`
-                    img = img + file.split('/').pop()
-                    if (!fs.existsSync(img)) await Yunzai.download_img(file, file.split('/').pop())
+                    const name = file.split('/').pop() || `${Date.now()}.png`
+                    img = img + name
+                    if (!fs.existsSync(img)) await Yunzai.download_img(file, name)
                     base64 = fs.readFileSync(img)
                 } else {
                     log = `[图片：${file}]`
