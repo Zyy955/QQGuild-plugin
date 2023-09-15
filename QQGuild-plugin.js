@@ -1,7 +1,7 @@
-import "./model/config.js"
-import "./model/api.js"
 import "./model/loader.js"
 import "./model/puppeteer.js"
+import "./model/config.js"
+import "./model/api.js"
 import "./model/ws.js"
 import fs from "fs"
 import Yaml from "yaml"
@@ -51,14 +51,14 @@ export class QQGuildBot extends plugin {
     async QQGuildCfg(e) {
         let msg
         if (e.msg.includes("分片转发")) {
-            let cfg = Yaml.parse(fs.readFileSync(QQGuild.Yz._path, 'utf8'))
+            let cfg = Yaml.parse(fs.readFileSync(qg.cfg._path, 'utf8'))
             if (e.msg.includes("开启")) {
                 cfg.分片转发 = true
             } else {
                 cfg.分片转发 = false
             }
-            QQGuild.config = cfg
-            fs.writeFileSync(QQGuild.Yz._path, Yaml.stringify(cfg), 'utf8')
+            qg.cfg = cfg
+            fs.writeFileSync(qg.cfg._path, Yaml.stringify(cfg), 'utf8')
             msg = `QQGuild-plugin：分片转发已${cfg.分片转发 ? '开启' : '关闭'}`
         } else {
             msg = await app.addBot(e)
@@ -69,7 +69,7 @@ export class QQGuildBot extends plugin {
     async QQGuildAccount(e) {
         if (e.sub_type === "friend") {
             const msg = []
-            const config = QQGuild.config.bot
+            const config = qg.cfg.cfg.bot
             for (const i in config) {
                 const cfg = [
                     config[i].sandbox ? 1 : 0,
@@ -168,10 +168,10 @@ let app = {
         if (!/^1\d{8}$/.test(cmd[2])) return "appID 错误！"
         if (!/^[0-9a-zA-Z]{32}$/.test(cmd[3])) return "token 错误！"
 
-        let cfg = Yaml.parse(fs.readFileSync(QQGuild.Yz._path, 'utf8'))
+        let cfg = Yaml.parse(fs.readFileSync(qg.cfg.cfg._path, 'utf8'))
         if (cfg.bot[cmd[2]]) {
             delete cfg.bot[cmd[2]]
-            fs.writeFileSync(QQGuild.Yz._path, Yaml.stringify(cfg), 'utf8')
+            fs.writeFileSync(qg.cfg.cfg._path, Yaml.stringify(cfg), 'utf8')
             return `Bot：${cmd[2]} 删除成功...重启后生效...`
         } else {
             cfg.bot[cmd[2]] = {
@@ -183,8 +183,8 @@ let app = {
         }
 
         /** 先存入 继续修改~ */
-        QQGuild.config = cfg
-        fs.writeFileSync(QQGuild.Yz._path, Yaml.stringify(cfg), 'utf8')
+        qg.cfg.cfg = cfg
+        fs.writeFileSync(qg.cfg.cfg._path, Yaml.stringify(cfg), 'utf8')
         if (cfg.bot[cmd[2]].allMsg)
             cfg.bot[cmd[2]].intents = [
                 "GUILDS", // bot频道列表、频道资料、列表变化
@@ -202,7 +202,7 @@ let app = {
                 "PUBLIC_GUILD_MESSAGES", // 公域消息
             ]
 
-        QQGuild.ws[cmd[2]] = cfg.bot[cmd[2]]
+        qg.ws[cmd[2]] = cfg.bot[cmd[2]]
         await ws.CreateBot({ [cmd[2]]: cfg.bot[cmd[2]] })
         return `Bot：${cmd[2]} 已连接...`
     }

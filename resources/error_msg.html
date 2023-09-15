@@ -97,8 +97,8 @@
 
     <script>
         window.onload = function () {
-            const old_msg = "{{old_msg}}"
-            const msg_split = old_msg.split('\n\n')
+            const msg = "{{msg}}"
+            const msg_split = msg.split('\n\n')
             const old_div = document.getElementById('msg')
             // 创建并插入div
             for (let i = 0; i < msg_split.length; i++) {
@@ -128,6 +128,6 @@
     <div class="message" id="msg">
         <h4>原始消息：</h4>
     </div>
-    <div class="author"><b>Created By {{Yz.name}} <span>{{Yz.version}}</span> & QQGulid-plugin
-            <span>{{Yz.GQ_version}}</span></b></div>
+    <div class="author"><b>Created By {{Yz.Yz.name}} <span>{{Yz.Yz.ver}}</span> & QQGulid-plugin
+            <span>{{Yz.ver}}</span></b></div>
 </body>

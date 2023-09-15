@@ -2,6 +2,8 @@ import fs from "fs"
 import fetch from "node-fetch"
 import { ws } from "./ws.js"
 
+const api = qg.api
+
 export let Yunzai = {
     /** 构建Yunzai的message */
     async message(data) {
@@ -9,7 +11,7 @@ export let Yunzai = {
         let message = []
         let raw_message = ""
         const { appID, msg } = data
-        const BotCfg = QQGuild.ws
+        const BotCfg = qg.ws
 
         /** at、表情、文本 */
         if (msg.content) {
@@ -81,7 +83,7 @@ export let Yunzai = {
     /** 消息转换为Yunzai格式 */
     async msg(data) {
         const { appID, msg } = data
-        const BotCfg = QQGuild.ws
+        const BotCfg = qg.ws
         let time = parseInt(Date.parse(msg.timestamp) / 1000)
         /** 判断是否为管理员2 创建者4 用户 子管5 分管21 暂未适配 */
         const roles = msg.member.roles
@@ -107,11 +109,11 @@ export let Yunzai = {
             /** 禁言 */
             mute: async (time) => {
                 const options = { seconds: time }
-                await QQGuild.api.muteMember(appID, msg.guild_id, msg.author.id, options)
+                await api.muteMember(appID, msg.guild_id, msg.author.id, options)
             },
             /** 踢 */
             kick: async () => {
-                await QQGuild.api.deleteGuildMember(appID, msg.guild_id, msg.author.id)
+                await api.deleteGuildMember(appID, msg.guild_id, msg.author.id)
             }
         }
 
@@ -121,7 +123,7 @@ export let Yunzai = {
             message: [...message],
             raw_message: raw_message,
             appID: appID,
-            uin: QQGuild.ws[appID].id,
+            uin: qg.ws[appID].id,
             author: msg.author,
             mentions: msg.mentions,
             post_type: "message",
@@ -139,7 +141,7 @@ export let Yunzai = {
             group_id: "qg_" + msg.guild_id + "-" + msg.channel_id,
             guild_id: msg.guild_id,
             channel_id: msg.channel_id,
-            group_name: `${QQGuild.guilds[msg.guild_id]?.channels[msg.channel_id] || '私信'}`,
+            group_name: `${qg.guilds[msg.guild_id]?.channels[msg.channel_id] || '私信'}`,
             self_id: appID,
             font: "宋体",
             seq: msg.seq,
@@ -201,7 +203,7 @@ export let Yunzai = {
 
         /** 引用消息 */
         if (msg?.message_reference?.message_id) {
-            const _reference = (await QQGuild.api.message(appID, msg.channel_id, msg.message_reference.message_id)).message
+            const _reference = (await api.message(appID, msg.channel_id, msg.message_reference.message_id)).message
             let message = []
             if (_reference.attachments) {
                 for (let i of _reference.attachments) {
@@ -248,7 +250,7 @@ export let Yunzai = {
             else if (typeof for_msg === "object" && /^#.*日志$/.test(data?.msg?.content)) {
                 const splitMsg = for_msg.split("\n").map(i => {
                     if (!i || i.trim() === "") return
-                    if (QQGuild.config.分片转发) {
+                    if (qg.cfg.分片转发) {
                         return { type: "forward", text: i.substring(0, 1000).trim().replace(/^\\n{1,3}|\\n{1,3}$/g, "") }
                     } else {
                         return { type: "forward", text: i.substring(0, 100).trim().replace(/^\\n{1,3}|\\n{1,3}$/g, "") }

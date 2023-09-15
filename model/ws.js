@@ -36,13 +36,13 @@ export let ws = {
     },
     /** 保存Bot配置到全局变量中 */
     async loadBotIntents(bot_cfg) {
-        QQGuild.ws = {
+        qg.ws = {
             /** 加载原有配置 */
-            ...QQGuild.ws,
+            ...qg.ws,
             /** 设置监听的事件 */
             ...await this.addBotCfg(bot_cfg)
         }
-        await this.CreateBot(QQGuild.ws)
+        await this.CreateBot(qg.ws)
     },
     /** 启动机器人并开始监听频道事件消息 */
     async CreateBot(BotCfg) {
@@ -70,33 +70,33 @@ export let ws = {
 
 
             /** 加载机器人所在频道、将对应的子频道信息存入变量中用于后续调用 */
-            const meGuilds = await QQGuild.api.meGuilds(appID)
+            const meGuilds = await qg.api.meGuilds(appID)
 
             for (let guildsData of meGuilds) {
                 /** 保存一些初始配置 */
                 const guildInfo = { ...guildsData, channels: {} }
-                QQGuild.guilds[guildsData.id] = guildInfo
-                QQGuild.guilds[guildsData.id].appID = appID
+                qg.guilds[guildsData.id] = guildInfo
+                qg.guilds[guildsData.id].appID = appID
 
                 /** 获取保存机器人自身信息 */
-                const user = await QQGuild.api.me(appID)
-                QQGuild.ws[appID].id = user.id
-                QQGuild.ws[appID].name = user.username
+                const user = await qg.api.me(appID)
+                qg.ws[appID].id = user.id
+                qg.ws[appID].name = user.username
 
                 /** 首先判断管理员是否为管理 */
                 try {
-                    const bot_config = await QQGuild.api.guildMember(appID, guildsData.id, user.id)
-                    QQGuild.guilds[guildsData.id].admin = bot_config.roles.includes("2") ? true : false
+                    const bot_config = await qg.api.guildMember(appID, guildsData.id, user.id)
+                    qg.guilds[guildsData.id].admin = bot_config.roles.includes("2") ? true : false
                 } catch (err) {
-                    QQGuild.guilds[guildsData.id].admin = false
+                    qg.guilds[guildsData.id].admin = false
                 }
 
                 try {
-                    const channelList = await QQGuild.api.channels(appID, guildsData.id)
-                    /** 添加群成员列表到Bot.gl中，用于主动发送消息 */
+                    const channelList = await qg.api.channels(appID, guildsData.id)
+                    /** 添加子频道列表到Bot.gl中，用于主动发送消息 */
                     for (const i of channelList)
-                        Bot.gl.set(`${i.guild_id}-${i.id}`, {
-                            group_id: `${i.guild_id}-${i.id}`,
+                        Bot.gl.set(`qg_${i.guild_id}-${i.id}`, {
+                            group_id: `qg_${i.guild_id}-${i.id}`,
                             guild_id: i.guild_id,
                             channel_id: i.id,
                             group_name: i.name,
@@ -107,7 +107,7 @@ export let ws = {
                     logger.error(`QQ频道机器人 [${user.username}(${appID}) 无权在 [${guildsData.name}] 获取子频道列表...请在机器人设置-权限设置-频道权限中，给予基础权限...`)
                 }
             }
-            logger.mark(logger.green(`Bot：${QQGuild.ws[appID].name}(${appID}) 连接成功~`))
+
             /** 创建一些虚假参数 用于推送米游社公告 */
             Bot[appID] = {
                 [appID]: appID,
@@ -120,7 +120,7 @@ export let ws = {
                             channel_id: channel_id
                         },
                         Guild: {
-                            Bot_name: `${QQGuild.ws[appID].name} `,
+                            Bot_name: `${qg.ws[appID].name} `,
                             GuildId: guild_id,
                             channel_id: channel_id,
                             op_user_id: "",
@@ -141,31 +141,35 @@ export let ws = {
                     }
                 }
             }
+            logger.mark(logger.green(`Bot：${qg.ws[appID].name}(${appID}) 连接成功~`))
+            /** 检测是否重启 */
+            const restart = await redis.get("qg:restart")
+            if (restart) await this.init(restart)
         }
     },
     /** 根据对应的事件进行打印日志和做对应的处理 */
     async log_msg(data) {
         const { appID, msg } = data
         /** Bot名称 */
-        const name = `${QQGuild.ws[appID].name} `
+        const name = `${qg.ws[appID].name} `
         /** 频道id */
-        let GuildId = await QQGuild.api.GuildId(msg)
+        let GuildId = await qg.api.GuildId(msg)
         /** 子频道id */
-        let channel_id = GuildId ? await QQGuild.api.channel_id(msg) : null
+        let channel_id = GuildId ? await qg.api.channel_id(msg) : null
         /** 操作人id */
-        let op_user_id = GuildId ? await QQGuild.api.op_user_id(msg) : null
+        let op_user_id = GuildId ? await qg.api.op_user_id(msg) : null
 
         /** 获取频道名称 */
-        let Guild_name = GuildId ? (QQGuild.guilds?.[GuildId].name || GuildId) : GuildId
+        let Guild_name = GuildId ? (qg.guilds?.[GuildId].name || GuildId) : GuildId
         /** 获取子频道名称 */
-        let channel_name = GuildId && channel_id ? (QQGuild.guilds[GuildId].channels[channel_id] || channel_id) : channel_id
+        let channel_name = GuildId && channel_id ? (qg.guilds[GuildId].channels[channel_id] || channel_id) : channel_id
         /** 操作人名称 */
-        let op_user_name = op_user_id ? ((await QQGuild.api.guildMember(appID, GuildId, op_user_id)).nick || op_user_id) : op_user_id
+        let op_user_name = op_user_id ? ((await qg.api.guildMember(appID, GuildId, op_user_id)).nick || op_user_id) : op_user_id
         /** 用户名称 */
         let user_name = msg.author?.username || msg.message?.author?.username || msg.user?.username
         if (!user_name || user_name === "") {
             let user_Id = msg.author?.id || msg.message?.author.id || msg?.user_id
-            user_name = (await QQGuild.api.guildMember(appID, GuildId, user_Id)).nick
+            user_name = (await qg.api.guildMember(appID, GuildId, user_Id)).nick
         }
         /** 存入响应体中，后续直接调用即可 */
         data.Guild = {
@@ -188,7 +192,7 @@ export let ws = {
                 logger.info(`${name}通知：[${Guild_name}] 管理员 ${op_user_name} 更改了频道资料`)
                 break
             case "GUILD_DELETE":
-                logger.info(`${name}通知：[${msg.name}] 管理员 ${op_user_name} 将 ${QQGuild.ws[appID].name} 从频道 ${msg.name} 中移除了!`)
+                logger.info(`${name}通知：[${msg.name}] 管理员 ${op_user_name} 将 ${qg.ws[appID].name} 从频道 ${msg.name} 中移除了!`)
                 break
             case "CHANNEL_CREATE":
                 logger.info(`${name}通知：[${Guild_name}] 管理员 ${op_user_name} 已创建子频道：${msg.name}`)
@@ -216,7 +220,7 @@ export let ws = {
             case "MESSAGE_CREATE":
                 logger.info(`${name}频道消息：[${Guild_name}-${channel_name}，${user_name}] ${this.guild_msg(msg)}`)
                 /** 解除私信 */
-                if (msg.content.replace(/<@!.*>/g, "").trim() === "#QQ频道解除私信") return this.Sendprivate(data)
+                if (msg?.content && msg.content.replace(/<@!.*>/g, "").trim() === "#QQ频道解除私信") return this.Sendprivate(data)
                 /** 转换消息 交由云崽处理 */
                 PluginsLoader.deal(await Yunzai.msg(data))
                 break
@@ -259,7 +263,7 @@ export let ws = {
             case "AT_MESSAGE_CREATE":
                 logger.info(`${name}频道消息：[${Guild_name}-${channel_name}，${user_name}] ${this.guild_msg(msg)}`)
                 /** 解除私信 */
-                if (msg.content.replace(/<@!.*>/g, "").trim() === "#QQ频道解除私信") return this.Sendprivate(data)
+                if (msg?.content && msg.content.replace(/<@!.*>/g, "").trim() === "#QQ频道解除私信") return this.Sendprivate(data)
                 /** 转换消息 交由云崽处理 */
                 PluginsLoader.deal(await Yunzai.msg(data))
                 break
@@ -291,23 +295,55 @@ export let ws = {
             source_guild_id: msg.guild_id,
             recipient_id: msg.author.id
         }
-        const newdata = await QQGuild.ws[appID].client.directMessageApi.createDirectMessage(newmsg)
-        logger.info(`${QQGuild.ws[appID].name} 发送私信消息：QQGuild-plugin：你好~`)
-        await QQGuild.ws[appID].client.directMessageApi
+        const newdata = await qg.ws[appID].client.directMessageApi.createDirectMessage(newmsg)
+        logger.info(`${qg.ws[appID].name} 发送私信消息：QQGuild-plugin：你好~`)
+        await qg.ws[appID].client.directMessageApi
             .postDirectMessage(newdata.data.guild_id, { content: " QQGuild-plugin：你好~" })
     },
     /** 渲染图片 */
-    async picture_reply(old_msg, Api_err) {
+    async picture_reply(msg, Api_err) {
         const data = {
-            Yz: QQGuild.Yz,
+            Yz: qg.cfg,
             Api_err: Api_err,
-            old_msg: old_msg.replace(/\n/g, "\\n"),
+            msg: msg,
             saveId: 'QQGuild-plugin',
             _plugin: 'QQGuild-plugin',
             tplFile: './plugins/QQGuild-plugin/resources/error_msg.html',
         }
         return (await puppeteer.screenshot(`QQGuild-plugin/QQGuild-plugin`, data)).file
     },
+
+    /** 保存重启到redis中 */
+    async restart(data) {
+        const type = data.eventType === "DIRECT_MESSAGE_CREATE" ? "私信" : "群聊"
+        const { id, guild_id, channel_id } = data.msg
+        const cfg = JSON.stringify({
+            type: type,
+            time: new Date().getTime(),
+            appID: data.appID,
+            id: id,
+            guild_id: guild_id,
+            channel_id: channel_id,
+        })
+        await redis.set("qg:restart", cfg, { EX: 120 })
+    },
+
+    /** 重启后发送主动消息 */
+    async init(restart) {
+        const cfg = JSON.parse(restart)
+        const { type, appID, id, guild_id, channel_id } = cfg
+
+        const time = (new Date().getTime() - cfg.time || new Date().getTime()) / 1000
+        const msg = `重启成功：耗时${time.toFixed(2)}秒`
+
+        if (type === "私信") {
+            await qg.api.postDirectMessage(appID, guild_id, { content: msg, msg_id: id })
+        } else {
+            await qg.api.postMessage(appID, channel_id, { content: msg, msg_id: id })
+        }
+        redis.del("qg:restart")
+    },
+
 
     /**
      * 转换消息为api可接收格式
@@ -317,6 +353,7 @@ export let ws = {
      * @param {boolean} reference - 是否回复引用消息
      */
     async reply(data, msg, reference) {
+        if (msg === "开始执行重启，请稍等...") await this.restart(data)
         /** 引用消息存入响应体中，方便调用 */
         data.reply = { reference: reference }
         /** 统一格式 */
@@ -335,9 +372,11 @@ export let ws = {
         if (msg?.[1]?.data?.type === "test") {
             newMsg.push({ type: "forward", text: msg[0] })
             newMsg.push(...msg[1].msg)
-        } else if (msg?.data?.type === "test") {
+        }
+        else if (msg?.data?.type === "test") {
             newMsg.push(...msg.msg)
-        } else if (Array.isArray(msg)) {
+        }
+        else if (Array.isArray(msg)) {
             newMsg = [].concat(...msg.map(i => (
                 typeof i === "string" ? [{ type: "text", text: i }] :
                     Array.isArray(i) ? [].concat(...i.map(format => (
@@ -346,11 +385,18 @@ export let ws = {
                     ))) :
                         typeof i === "object" && i !== null ? [i] : []
             )))
-        } else if (msg instanceof Uint8Array) {
+        }
+        /** 天知道从哪里蹦出来的... */
+        else if (msg instanceof fs.ReadStream) {
+            newMsg.push({ type: "image", file: `./${msg.file.path}` })
+        }
+        else if (msg instanceof Uint8Array) {
             newMsg.push({ type: "image", file: msg })
-        } else if (typeof msg === "object") {
+        }
+        else if (typeof msg === "object") {
             newMsg.push(msg)
-        } else {
+        }
+        else {
             newMsg.push({ type: "text", text: msg })
         }
         return newMsg
@@ -392,7 +438,7 @@ export let ws = {
                     break
                 case "forward":
                     /** 转发消息 */
-                    if (QQGuild.config.分片转发) {
+                    if (qg.cfg.分片转发) {
                         /** 延迟下... */
                         await new Promise((resolve) => setTimeout(resolve, 500))
                         await this.reqConfig(data, { content: await this.urlHandler(data, i.text), ...image || null }, reference)
@@ -416,7 +462,7 @@ export let ws = {
         /** 延迟下... */
         await new Promise((resolve) => setTimeout(resolve, 500))
         if (typeof msg !== 'string') return msg
-        const urls = QQGuild.config.url白名单
+        const urls = qg.cfg.cfg.url白名单
         const whiteRegex = new RegExp(`\\b(${urls.map(url => url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'g')
         /** 将url转二维码 */
         if (!msg.match(whiteRegex)) {
@@ -453,6 +499,7 @@ export let ws = {
         if (msg.type === "image") {
             const file = msg.file
             let img = "./plugins/QQGuild-plugin/data/image/"
+
             /** 套娃的二进制base64 */
             if (msg.file.type === "Buffer") {
                 if (!(msg.file.data instanceof Uint8Array)) {
@@ -461,7 +508,11 @@ export let ws = {
                     base64 = msg.file.data
                 }
             }
-            /** 二进制转字符串 */
+            /** 天知道从哪里蹦出来的... */
+            else if (file instanceof fs.ReadStream) {
+                base64 = fs.readFileSync(`./${msg.file.path}`)
+            }
+            /** Uint8Array */
             else if (file instanceof Uint8Array) {
                 base64 = file
             }
@@ -479,7 +530,7 @@ export let ws = {
             }
             /** 判断url是否为白名单，否则缓存图片转为二进制 */
             else if (typeof file === "string" && /^(https|http):\/\//.test(file)) {
-                const urls = QQGuild.config.url白名单
+                const urls = qg.cfg.cfg.url白名单
                 const whiteRegex = new RegExp(`\\b(${urls.map(url =>
                     url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'g')
                 if (!file.match(whiteRegex)) {
@@ -496,7 +547,7 @@ export let ws = {
             }
             /** 字符串格式的base64 */
             else if (typeof file === "string") {
-                base64 = file.replace(/^base64:\/\//, "")
+                base64 = Buffer.from(file.replace(/^base64:\/\//, ""), "base64")
             } else {
                 logger.error("未适配字段，请反馈到仓库:", msg)
             }
@@ -507,9 +558,12 @@ export let ws = {
     async reqConfig(data, Api_msg, reference) {
         let logs = ""
         let SendMsg = {}
-        const { msg, Guild } = data
+        const { msg, Guild, appID } = data
         const { content, type, image, log } = Api_msg
-        const { Bot_name, Guild_name, channel_name, user_name } = Guild
+        const Bot_name = `${qg.ws[appID].name} `
+        const Guild_name = Guild?.Guild_name || msg.guild_id
+        const channel_name = Guild?.channel_name || msg.channel_id
+        const user_name = Guild?.user_name || msg?.author?.id || "未知"
 
         /** 判断是否存在base64 引用消息无法实现file_image格式的图片引用 */
         if (type === "file_image") {
@@ -554,7 +608,12 @@ export let ws = {
                 logs += content
                 SendMsg.content = content
                 /** 存一份原始消息，用于后续发送失败渲染图片 */
-                data.Guild.content = content
+                try {
+                    data.Guild.content = content
+                } catch (err) {
+                    data.Guild = { content: content }
+                }
+
             }
         }
 
@@ -564,10 +623,10 @@ export let ws = {
                 logger.info(`${Bot_name}发送消息：[${Guild_name}-私信，${user_name}] ${logs}`)
                 break
             case "MESSAGE_CREATE":
-                logger.info(`${Bot_name}发送消息：[${Guild_name}-${channel_name}，${user_name}] ${logs}`)
+                logger.info(`${Bot_name}发送消息：[${Guild_name}-${channel_name}] ${logs}`)
                 break
             case "AT_MESSAGE_CREATE":
-                logger.info(`${Bot_name}发送消息：[${Guild_name}-${channel_name}，${user_name}] ${logs}`)
+                logger.info(`${Bot_name}发送消息：[${Guild_name}-${channel_name}] ${logs}`)
                 break
             default:
                 logger.error("未知场景：", data)
@@ -577,7 +636,7 @@ export let ws = {
     /** 向API回复消息 */
     async postMsg(data, SendMsg) {
         const { msg, appID } = data
-        const Bot_name = `${QQGuild.ws[appID].name} `
+        const Bot_name = `${qg.ws[appID].name} `
         const guild_id = msg.guild_id.replace("qg_", "")
         const channel_id = msg.channel_id.replace("qg_", "")
 
@@ -586,19 +645,22 @@ export let ws = {
         try {
             /** 判断频道还是私聊 */
             data.eventType === "DIRECT_MESSAGE_CREATE"
-                ? res = await QQGuild.ws[appID].client.directMessageApi.postDirectMessage(guild_id, SendMsg)
-                : res = await QQGuild.ws[appID].client.messageApi.postMessage(channel_id, SendMsg)
+                ? res = await qg.ws[appID].client.directMessageApi.postDirectMessage(guild_id, SendMsg)
+                : res = await qg.ws[appID].client.messageApi.postMessage(channel_id, SendMsg)
         } catch (error) {
             logger.error(`${Bot_name}发送消息错误，正在转成图片重新发送...\n错误信息：`, error)
             /** 转换为图片发送 */
             let Resend = new FormData()
             if (msg?.id) Resend.set("msg_id", msg.id)
-            Resend.set("file_image", new Blob([await this.picture_reply(data.Guild?.content || "啊咧，图片发不出来呀", error)]))
+
+            let content = null
+            if (data.Guild?.content) content = data.Guild?.content?.replace(/\n/g, "\\n")
+            Resend.set("file_image", new Blob([await this.picture_reply(content || "啊咧，图片发不出来", error)]))
 
             /** 判断频道还是私聊 */
             data.eventType === "DIRECT_MESSAGE_CREATE"
-                ? res = await QQGuild.ws[appID].client.directMessageApi.postDirectMessage(guild_id, Resend)
-                : res = await QQGuild.ws[appID].client.messageApi.postMessage(channel_id, Resend)
+                ? res = await qg.ws[appID].client.directMessageApi.postDirectMessage(guild_id, Resend)
+                : res = await qg.ws[appID].client.messageApi.postMessage(channel_id, Resend)
         }
         /** 返回消息id给撤回用？ */
         return {
@@ -611,4 +673,4 @@ export let ws = {
 }
 
 /** 加载机器人 */
-if (QQGuild.config.bot) ws.loadBotIntents(QQGuild.config.bot)
+if (qg.cfg.cfg.bot) ws.loadBotIntents(qg.cfg.cfg.bot)

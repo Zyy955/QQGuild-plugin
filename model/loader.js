@@ -1,10 +1,118 @@
 import fs from "fs"
 import lodash from "lodash"
-import { ws } from "./ws.js"
 import { Group } from "icqq/lib/group.js"
 import cfg from "../../../lib/config/config.js"
 import common from "../../../lib/common/common.js"
 import PluginsLoader from "../../../lib/plugins/loader.js"
+
+
+/** QQ频道适配器 */
+global.qg = {
+    cfg: {},
+    api: {},
+    guilds: {},
+    oldway: {},
+    ws: {},
+    /** 原方法 */
+    old: {
+        reply: PluginsLoader.reply,
+        dealMsg: PluginsLoader.dealMsg,
+        checkBlack: PluginsLoader.checkBlack,
+        sendMsg: Group.prototype.sendMsg,
+        getGroupMemberInfo: Bot.getGroupMemberInfo
+    }
+}
+
+/** 版本、名称 */
+const Yz = JSON.parse(fs.readFileSync("./package.json", "utf-8"))
+qg.cfg = {
+    Yz: {
+        ver: Yz.version,
+        name: Yz.name === "miao-yunzai" ? "Miao-Yunzai" : "Yunzai-Bot",
+    }
+}
+
+
+/** 椰奶椰奶！ */
+if (fs.existsSync(process.cwd() + "/plugins/yenai-plugin")) {
+    const yenai_plugin = (await import("./yenai-plugin.js")).default
+    await yenai_plugin.yenai()
+}
+
+
+// const originalAs = Group.as
+// Group.as = function (gid, strict = false) {
+//     /** 延迟下... */
+//     setTimeout(() => { }, 8000)
+//     const result = originalAs.call(Group, gid, strict)
+//     return result
+// }
+
+/** 劫持修改sendMsg方法 */
+Group.prototype.sendMsg = async function (content, source, anony = false) {
+    /** 判断是否为频道 */
+    const _info = this._info
+    if (_info?.guild_id && _info?.channel_id) {
+        const guild_id = _info.guild_id
+        const channel_id = _info.channel_id
+
+        /** 获取appID */
+        const id = qg.guilds[guild_id].appID
+        const data = {
+            appID: id,
+            msg: {
+                guild_id: guild_id,
+                channel_id: channel_id
+            },
+            eventType: "MESSAGE_CREATE"
+        }
+        const ws = (await import("../../QQGuild-plugin/model/ws.js")).ws
+        return await ws.reply(data, content, anony)
+    }
+    /** 带@ = PC微信HOOK */
+    else if (_info?.group_id.includes("@")) {
+        const data = {
+            detail_type: "group",
+            group_id: _info.group_id,
+        }
+        const Yunzai = (await import("../../WeChat-plugin/model/Yunzai.js")).Yunzai
+        return await Yunzai.reply(content, data)
+    }
+    /** web等待完成... */
+    else {
+        /** 调用原始的 sendMsg 方法 */
+        return qg.old.sendMsg.call(this, content, source, anony)
+    }
+}
+
+/** 劫持修改getGroupMemberInfo方法 */
+Bot.getGroupMemberInfo = async function (group_id, id) {
+    if (String(group_id).includes("qg_", "@")) {
+        const scene = String(group_id).includes("qg_") ? "QQGuild-Bot" : "WeChat-Bot"
+        return {
+            group_id: group_id,
+            user_id: id,
+            nickname: scene,
+            card: "",
+            sex: "female",
+            age: 6,
+            join_time: "",
+            last_sent_time: "",
+            level: 1,
+            role: "member",
+            title: "",
+            title_expire_time: "",
+            shutup_time: 0,
+            update_time: "",
+            area: "南极洲",
+            rank: "潜水",
+        }
+    } else {
+        return qg.old.getGroupMemberInfo.call(this, group_id, id)
+    }
+}
+
+
 
 
 let _loader = {
@@ -41,6 +149,7 @@ let _loader = {
                         e.img.push(val.url)
                         break
                     case 'at':
+                        /** 加一个自定义判断，判断频道或者微信场景下是否atBot */
                         if (val.qq == e.bot.uin || val.qq == e.uin) {
                             e.atBot = true
                         } else if (val.id == e.bot.tiny_id || val.id == e.uin) {
@@ -103,7 +212,7 @@ let _loader = {
             e.isGuild = true
         }
 
-        if (e.user_id && cfg.masterQQ.includes(Number(e.user_id) || e.user_id)) {
+        if (e.user_id && cfg.masterQQ.includes(Number(e.user_id) || String(e.user_id))) {
             e.isMaster = true
         }
 
@@ -217,18 +326,18 @@ let _loader = {
         if (e.test) return true
 
         /** 黑名单qq */
-        if (other.blackQQ && other.blackQQ.includes(Number(e.user_id) || e.user_id)) {
+        if (other.blackQQ && other.blackQQ.includes(Number(e.user_id) || String(e.user_id))) {
             return false
         }
 
         if (e.group_id) {
             /** 白名单群 */
             if (Array.isArray(other.whiteGroup) && other.whiteGroup.length > 0) {
-                return other.whiteGroup.includes(Number(e.group_id) || e.group_id)
+                return other.whiteGroup.includes(Number(e.group_id) || String(e.group_id))
             }
             /** 黑名单群 */
             if (Array.isArray(other.blackGroup) && other.blackGroup.length > 0) {
-                return !other.blackGroup.includes(Number(e.group_id) || e.group_id)
+                return !other.blackGroup.includes(Number(e.group_id) || String(e.group_id))
             }
         }
 
@@ -314,7 +423,7 @@ let _loader = {
             e.logText = `[${e.group_name}(${e.sender.card})]`
         }
 
-        if (e.user_id && cfg.masterQQ.includes(Number(e.user_id) || e.user_id)) {
+        if (e.user_id && cfg.masterQQ.includes(Number(e.user_id) || String(e.user_id))) {
             e.isMaster = true
         }
 
@@ -359,7 +468,7 @@ let _loader = {
                         text = lodash.truncate(e.sender.card, { length: 10 })
                     }
                     if (at === true) {
-                        at = Number(e.user_id) || e.user_id
+                        at = Number(e.user_id) || String(e.user_id)
                     } else if (!isNaN(at)) {
                         let info = e.group.pickMember(at).info
                         text = info?.card ?? info?.nickname
@@ -421,18 +530,18 @@ let _loader = {
         if (e.test) return true
 
         /** 黑名单qq */
-        if (other.blackQQ && other.blackQQ.includes(Number(e.user_id) || e.user_id)) {
+        if (other.blackQQ && other.blackQQ.includes(Number(e.user_id) || String(e.user_id))) {
             return false
         }
 
         if (e.group_id) {
             /** 白名单群 */
             if (Array.isArray(other.whiteGroup) && other.whiteGroup.length > 0) {
-                return other.whiteGroup.includes(Number(e.group_id) || e.user_id)
+                return other.whiteGroup.includes(Number(e.group_id) || String(e.user_id))
             }
             /** 黑名单群 */
             if (Array.isArray(other.blackGroup) && other.blackGroup.length > 0) {
-                return !other.blackGroup.includes(Number(e.group_id) || e.user_id)
+                return !other.blackGroup.includes(Number(e.group_id) || String(e.user_id))
             }
         }
 
@@ -498,88 +607,23 @@ let _loader = {
     }
 }
 
-/** 椰奶椰奶！ */
-if (fs.existsSync(process.cwd() + "/plugins/yenai-plugin")) {
-    const yenai_plugin = (await import("./yenai-plugin.js")).default
-    await yenai_plugin.yenai()
-}
-
-/** 劫持修改sendMsg方法 */
-QQGuild.oldway.sendMsg = Group.prototype.sendMsg
-Group.prototype.sendMsg = async function (content, source, anony = false) {
-    /** 判断是否为频道 */
-    const _info = this._info
-    if (_info?.guild_id && _info?.channel_id) {
-        const guild_id = _info.guild_id
-        const channel_id = _info.channel_id
-
-        /** 获取appID */
-        const id = QQGuild.guilds[guild_id].appID
-        const data = {
-            appID: id,
-            msg: {
-                guild_id: guild_id,
-                channel_id: channel_id
-            },
-            eventType: "MESSAGE_CREATE"
-        }
-        return await ws.reply(data, content, anony)
-    } else {
-        /** 调用原始的 sendMsg 方法 */
-        return QQGuild.oldway.sendMsg.call(this, content, source, anony)
-    }
-}
-
-/** 劫持修改getGroupMemberInfo方法 */
-QQGuild.oldway.getGroupMemberInfo = Bot.getGroupMemberInfo
-Bot.getGroupMemberInfo = async function (group_id, id) {
-    if (group_id.toString().length > 10) {
-        return {
-            group_id: group_id,
-            user_id: id,
-            nickname: "QQGuild-Bot",
-            card: "",
-            sex: "female",
-            age: 6,
-            join_time: "",
-            last_sent_time: "",
-            level: 1,
-            role: "member",
-            title: "",
-            title_expire_time: "",
-            shutup_time: 0,
-            update_time: "",
-            area: "南极洲",
-            rank: "潜水",
-        }
-    } else {
-        return QQGuild.oldway.getGroupMemberInfo.call(this, group_id, id)
-    }
-}
-
-/** 保存原有方法 */
-const YzBot = {
-    reply: PluginsLoader.reply,
-    dealMsg: PluginsLoader.dealMsg,
-    checkBlack: PluginsLoader.checkBlack
-}
 
 /** 劫持修改主体一些基础处理方法 */
-if (QQGuild.Yz.name === "Miao-Yunzai") {
+if (qg.cfg.Yz.name === "Miao-Yunzai") {
     /** 劫持回复方法 */
     PluginsLoader.reply = function (e) {
         if (e?.adapter) return _loader.reply.call(this, e)
-        return YzBot.reply.call(this, e)
+        return qg.old.reply.call(this, e)
     }
     /** 劫持处理消息 */
     PluginsLoader.dealMsg = function (e) {
         if (e?.adapter) return _loader.dealMsg.call(this, e)
-        return YzBot.dealMsg.call(this, e)
+        return qg.old.dealMsg.call(this, e)
     }
     /** 劫持黑白名单 */
     PluginsLoader.checkBlack = function (e) {
         if (e?.adapter) return _loader.checkBlack.call(this, e)
-        return YzBot.checkBlack.call(this, e)
+        return qg.old.checkBlack.call(this, e)
     }
 
     /** 本体转发 */
@@ -592,17 +636,17 @@ else {
     /** 劫持回复方法 */
     PluginsLoader.reply = function (e) {
         if (e?.adapter) return _loader.Yz_reply.call(this, e)
-        return YzBot.reply.call(this, e)
+        return qg.old.reply.call(this, e)
     }
     /** 劫持处理消息 */
     PluginsLoader.dealMsg = function (e) {
         if (e?.adapter) return _loader.Yz_dealMsg.call(this, e)
-        return YzBot.dealMsg.call(this, e)
+        return qg.old.dealMsg.call(this, e)
     }
     /** 劫持黑白名单 */
     PluginsLoader.checkBlack = function (e) {
         if (e?.adapter) return _loader.Yz_checkBlack.call(this, e)
-        return YzBot.checkBlack.call(this, e)
+        return qg.old.checkBlack.call(this, e)
     }
 
     /** 本体转发 */
