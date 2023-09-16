@@ -168,10 +168,10 @@ let app = {
         if (!/^1\d{8}$/.test(cmd[2])) return "appID 错误！"
         if (!/^[0-9a-zA-Z]{32}$/.test(cmd[3])) return "token 错误！"
 
-        let cfg = Yaml.parse(fs.readFileSync(qg.cfg.cfg._path, 'utf8'))
+        let cfg = Yaml.parse(fs.readFileSync(qg.cfg._path, 'utf8'))
         if (cfg.bot[cmd[2]]) {
             delete cfg.bot[cmd[2]]
-            fs.writeFileSync(qg.cfg.cfg._path, Yaml.stringify(cfg), 'utf8')
+            fs.writeFileSync(qg.cfg._path, Yaml.stringify(cfg), 'utf8')
             return `Bot：${cmd[2]} 删除成功...重启后生效...`
         } else {
             cfg.bot[cmd[2]] = {
@@ -184,7 +184,7 @@ let app = {
 
         /** 先存入 继续修改~ */
         qg.cfg.cfg = cfg
-        fs.writeFileSync(qg.cfg.cfg._path, Yaml.stringify(cfg), 'utf8')
+        fs.writeFileSync(qg.cfg._path, Yaml.stringify(cfg), 'utf8')
         if (cfg.bot[cmd[2]].allMsg)
             cfg.bot[cmd[2]].intents = [
                 "GUILDS", // bot频道列表、频道资料、列表变化
