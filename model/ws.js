@@ -119,7 +119,7 @@ export let ws = {
             Bot[appID] = {
                 uin: appID,
                 [appID]: appID,
-                nickname: qg.ws[appID].name,
+                nickname: qg.ws[appID].name.replace("-测试中",""),
                 avatar: qg.ws[appID].avatar,
                 stat: { start_time: Date.now() / 1000 },
                 apk: { display: qg.cfg.name, version: qg.cfg.ver },
