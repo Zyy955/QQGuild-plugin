@@ -11,4 +11,4 @@ if (!fs.existsSync(_path)) {
 /** 保存基本配置、插件版本、插件名称 */
 const cfg = Yaml.parse(fs.readFileSync(_path, 'utf8'))
 const QG = JSON.parse(fs.readFileSync("./plugins/QQGuild-plugin/package.json", "utf-8"))
-qg.cfg = { ...qg.cfg, cfg: cfg, ver: QG.version, name: QG.name, _path: _path }
+qg.cfg = { ...qg.cfg, cfg: cfg, ver: QG.version, name: QG.name, _path: _path, bot: QG.dependencies["qq-guild-bot"] }

@@ -82,6 +82,7 @@ export let ws = {
                 const user = await qg.api.me(appID)
                 qg.ws[appID].id = user.id
                 qg.ws[appID].name = user.username
+                qg.ws[appID].avatar = user.avatar
 
                 /** 首先判断管理员是否为管理 */
                 try {
@@ -108,9 +109,23 @@ export let ws = {
                 }
             }
 
-            /** 创建一些虚假参数 用于推送米游社公告 */
+            /** 米游社主动推送、椰奶状态pro */
+            if (!Bot?.adapter) {
+                Bot.adapter = [Bot.uin]
+                Bot.adapter.push(appID)
+            } else {
+                Bot.adapter.push(appID)
+            }
             Bot[appID] = {
+                uin: appID,
                 [appID]: appID,
+                nickname: qg.ws[appID].name,
+                avatar: qg.ws[appID].avatar,
+                stat: { start_time: Date.now() / 1000 },
+                apk: { display: qg.cfg.name, version: qg.cfg.ver },
+                fl: new Map(),
+                gl: new Map(),
+                version: { id: "qg", name: "QQ频道Bot", version: qg.cfg.bot.replace("^", "") },
                 pickGroup: (groupId) => {
                     const [guild_id, channel_id] = groupId.replace("qg_", "").split('-')
                     const data = {
