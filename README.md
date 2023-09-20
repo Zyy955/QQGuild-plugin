@@ -107,7 +107,7 @@ token：`abcdefghijklmnopqrstuvwxyz123456`
 
 ## 分片转发
 
-默认关闭
+默认开启
 
 分片转发：对每条转发的内容进行逐一发送
 ```

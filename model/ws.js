@@ -424,6 +424,8 @@ export let ws = {
         let content = ""
         const msg = data.msg
 
+        if (newMsg?.[0].type === "xml") newMsg = newMsg?.[0].msg
+
         for (const i of newMsg) {
             /** 太快了 太快了！ */
             await new Promise((resolve) => setTimeout(resolve, 300))
@@ -455,7 +457,7 @@ export let ws = {
                     break
                 case "forward":
                     /** 转发消息 */
-                    if (qg.cfg.分片转发) {
+                    if (qg.cfg.cfg.分片转发) {
                         /** 延迟下... */
                         await new Promise((resolve) => setTimeout(resolve, 500))
                         await this.reqConfig(data, { content: await this.urlHandler(data, i.text), ...image || null }, reference)

@@ -233,7 +233,7 @@ export let Yunzai = {
         for (const i_msg of forwardMsg) {
             const for_msg = i_msg.message
             /** 套娃转发 */
-            if (typeof for_msg === "object" && for_msg?.data?.type === "test") {
+            if (typeof for_msg === "object" && (for_msg?.data?.type === "test" || for_msg?.type === "xml")) {
                 newmsg.push(...for_msg.msg)
             }
             /** 兼容喵崽更新抽卡记录 */
@@ -250,7 +250,7 @@ export let Yunzai = {
             else if (typeof for_msg === "object" && /^#.*日志$/.test(data?.msg?.content)) {
                 const splitMsg = for_msg.split("\n").map(i => {
                     if (!i || i.trim() === "") return
-                    if (qg.cfg.分片转发) {
+                    if (qg.cfg.cfg.分片转发) {
                         return { type: "forward", text: i.substring(0, 1000).trim().replace(/^\\n{1,3}|\\n{1,3}$/g, "") }
                     } else {
                         return { type: "forward", text: i.substring(0, 100).trim().replace(/^\\n{1,3}|\\n{1,3}$/g, "") }
@@ -273,7 +273,7 @@ export let Yunzai = {
         }
         /** 对一些重复元素进行去重 */
         messages.msg = Array.from(new Set(newmsg.map(JSON.stringify))).map(JSON.parse)
-        messages.data = { type: "test", text: "forward" }
+        messages.data = { type: "test", text: "forward", app: "com.tencent.multimsg", meta: { detail: { news: [{ text: "1" }] }, resid: "", uniseq: "", summary: "" } }
         return messages
     }
 }

@@ -57,7 +57,7 @@ export class QQGuildBot extends plugin {
             } else {
                 cfg.分片转发 = false
             }
-            qg.cfg = cfg
+            qg.cfg.cfg = cfg
             fs.writeFileSync(qg.cfg._path, Yaml.stringify(cfg), 'utf8')
             msg = `QQGuild-plugin：分片转发已${cfg.分片转发 ? '开启' : '关闭'}`
         } else {

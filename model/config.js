@@ -5,7 +5,7 @@ const _path = process.cwd() + "/plugins/QQGuild-plugin/config.yaml"
 
 /** 生成默认配置文件 */
 if (!fs.existsSync(_path)) {
-    fs.writeFileSync(_path, `bot: {}\nurl白名单:\n  - https://www.Zyy955.com\n分片转发: false`, 'utf8')
+    fs.writeFileSync(_path, `bot: {}\nurl白名单:\n  - https://www.Zyy955.com\n分片转发: true`, 'utf8')
 }
 
 /** 保存基本配置、插件版本、插件名称 */
