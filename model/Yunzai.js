@@ -24,14 +24,16 @@ export let Yunzai = {
 
             for (const i of content) {
                 if (i.startsWith("<@")) {
-                    let atValue = i.slice(3, -1)
-                    const name = at_name(atValue)
-                    if (BotCfg[appID].id === atValue) {
-                        atValue = Bot.uin
+                    let at_user = i.slice(3, -1)
+                    const name = at_name(at_user)
+                    if (BotCfg[appID].id === at_user) {
+                        at_user = Bot.uin
                         atme = true
+                    } else {
+                        at_user = `qg_${at_user}`
                     }
                     raw_message += name
-                    message.push({ type: "at", text: name, qq: atValue })
+                    message.push({ type: "at", text: name, qq: at_user })
                 } else if (i.startsWith("<emoji:")) {
                     const faceValue = i.slice(7, -1)
                     raw_message += `{emoji:${faceValue}}`

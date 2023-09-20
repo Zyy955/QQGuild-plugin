@@ -459,7 +459,7 @@ export let ws = {
                     /** 转发消息 */
                     if (qg.cfg.cfg.分片转发) {
                         /** 延迟下... */
-                        await new Promise((resolve) => setTimeout(resolve, 500))
+                        await new Promise((resolve) => setTimeout(resolve, 150))
                         await this.reqConfig(data, { content: await this.urlHandler(data, i.text), ...image || null }, reference)
                     } else {
                         content += await this.urlHandler(data, `${i.text}\n\n`)
