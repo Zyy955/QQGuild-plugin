@@ -14,6 +14,7 @@ import { update } from "../other/update.js"
 /** 设置主人 */
 let user = ""
 let sign = {}
+const _path = "./config/config/other.yaml"
 
 export class QQGuildBot extends plugin {
     constructor() {
@@ -113,7 +114,7 @@ export class QQGuildBot extends plugin {
     async master(e) {
         /** 对用户id进行默认赋值 */
         user = e.user_id
-        let cfg = fs.readFileSync("./config/config/other.yaml", "utf8")
+        let cfg = fs.readFileSync(_path, "utf8")
         if (e.at) {
             /** 存在at检测触发用户是否为主人 */
             if (!e.isMaster) return e.reply(`只有主人才能命令我哦~\n(*/ω＼*)`)
@@ -135,7 +136,7 @@ export class QQGuildBot extends plugin {
     }
 
     async del_master(e) {
-        const file = "./config/config/other.yaml"
+        const file = _path
         if (!e.at) return e.reply("你都没有告诉我是谁！快@他吧！^_^")
         let cfg = fs.readFileSync(file, "utf8")
         if (!cfg.match(RegExp(`- "?${e.at}"?`)))
@@ -166,22 +167,29 @@ export class QQGuildBot extends plugin {
 let app = {
     /** 设置主人 */
     add_master(e) {
-        let match
-        let text
-        let cfg = fs.readFileSync("./config/config/other.yaml", "utf8")
+        let cfg = fs.readFileSync(_path, "utf8")
         /** 使用正则表达式确认是TRSS还是Miao */
         if (cfg.match(RegExp("master:"))) {
-            cfg = cfg.replace(RegExp("masterQQ:"), `masterQQ:\n  - "${user}"`)
-            const value = `master:\n  - "${e.self_id}:${user}"`
-            cfg = cfg.replace(RegExp("master:"), value)
+            /** 保留注释 */
+            const document = Yaml.parseDocument(cfg)
+            const masterQQ = document.get("masterQQ")
+            masterQQ.add(user)
+            document.set("masterQQ", masterQQ)
+
+            const master = document.get("master")
+            master.add(`${e.self_id}:${user}`)
+            document.set("master", master)
+
+            cfg = document.toString()
         } else {
-            const regexp = /masterQQ([\s\S]*?)disableGuildMsg/g
-            while ((match = regexp.exec(cfg)) !== null) { text = match[0] }
-            const msg = `\n  - ${user}\n# 禁用频道功能 true: 不接受频道消息，flase：接受频道消息\ndisableGuildMsg`
-            text = `${text.replace(/((\n#[\s\S]*|\n{1,3})|\n{1,3})?disableGuildMsg/g, "")}${msg}`
-            cfg = cfg.replace(RegExp("masterQQ[\\s\\S]*disableGuildMsg"), text)
+            /** 保留注释 */
+            const document = Yaml.parseDocument(cfg)
+            const masterQQ = document.get("masterQQ")
+            masterQQ.add(user)
+            document.set("masterQQ", masterQQ)
+            cfg = document.toString()
         }
-        fs.writeFileSync("./config/config/other.yaml", cfg, "utf8")
+        fs.writeFileSync(_path, cfg, "utf8")
         return [segment.at(user), "新主人好~(*/ω＼*)"]
     },
 
