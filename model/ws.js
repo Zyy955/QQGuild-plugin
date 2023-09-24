@@ -433,7 +433,7 @@ export let ws = {
                 case "at":
                     if (i.text === msg?.author?.username)
                         content += `<@${msg?.author?.id}>`
-                    else if (i.qq === 0 || i.qq) {
+                    else if (i.qq && i.qq === 0) {
                         content += `<@${i.id.replace("qg_", "")}>`
                     } else {
                         content += `<@${i.qq.replace("qg_", "")}>`
