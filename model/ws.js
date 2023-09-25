@@ -1,5 +1,6 @@
 import fs from "fs"
 import { URL } from "url"
+import fetch from "node-fetch"
 import qrcode from "qrcode"
 import { Yunzai } from "./Yunzai.js"
 import { FormData, Blob } from "node-fetch"
@@ -301,10 +302,11 @@ export let ws = {
     guild_msg(msg) {
         const { attachments, content } = msg
         const allMsg = []
-        attachments && attachments.forEach(i => allMsg.push(`[图片：./data/image/${i.filename}]`))
+        attachments && attachments.forEach(i => allMsg.push(`[图片：${i.filename}]`))
         content && allMsg.push(content)
         return allMsg.join(" ")
     },
+
     /** 发送主动消息 解除私信限制 */
     Sendprivate: async (data) => {
         const { msg, appID } = data
@@ -517,7 +519,7 @@ export let ws = {
         /** 米游社公告类 */
         if (msg.type === "image") {
             const file = msg.file
-            let img = "./plugins/QQGuild-plugin/data/image/"
+            let log = `[图片：base64://...]`
 
             /** 套娃的二进制base64 */
             if (msg.file.type === "Buffer") {
@@ -537,14 +539,10 @@ export let ws = {
             }
             /** 检测是否为频道下发图片 复读表情包用... */
             else if (typeof file === "string" && msg.url) {
-                img = img + msg.file
-                log = `[图片：${img}]`
-                if (!fs.existsSync(img)) await Yunzai.download_img(`https://${msg.url}`, file)
-                base64 = fs.readFileSync(img)
+                base64 = new Uint8Array(await (await fetch(msg.url)).arrayBuffer())
             }
             /** 本地文件转成base64 */
             else if (typeof file === "string" && fs.existsSync(file.replace(/^file:[/]{0,3}/, ""))) {
-                log = `[图片：${file}]`
                 base64 = fs.readFileSync(file.replace(/^file:[/]{0,3}/, ""))
             }
             /** 判断url是否为白名单，否则缓存图片转为二进制 */
@@ -553,11 +551,8 @@ export let ws = {
                 const whiteRegex = new RegExp(`\\b(${urls.map(url =>
                     url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'g')
                 if (!file.match(whiteRegex)) {
-                    log = `[图片：${img}]`
-                    const name = file.split('/').pop() || `${Date.now()}.png`
-                    img = img + name
-                    if (!fs.existsSync(img)) await Yunzai.download_img(file, name)
-                    base64 = fs.readFileSync(img)
+                    /** 下载图片转为base64 */
+                    base64 = new Uint8Array(await (await fetch(file)).arrayBuffer())
                 } else {
                     log = `[图片：${file}]`
                     type = "url"

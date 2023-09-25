@@ -48,40 +48,19 @@ export let Yunzai = {
         /** 图片 动画表情 */
         if (msg.attachments) {
             for (const i of msg.attachments) {
-                /** 缓存图片至本地以供后续调用 */
-                await this.download_img(`https://${i.url}`, i.filename)
-                /** 等1s防止发送空图片 */
-                await new Promise((resolve) => setTimeout(resolve, 1000))
                 const image = {
                     type: "image",
                     file: i.filename,
                     url: `https://${i.url}`,
                     content_type: i.content_type
                 }
-                raw_message += `{image:${i.filename}}`
+                raw_message += `[图片：${i.filename}]`
                 message.push(image)
             }
         }
         return { message, raw_message, atme }
     },
-    /** 缓存图片 */
-    async download_img(url, name) {
-        return new Promise(async (resolve, reject) => {
-            const file_name = `./plugins/QQGuild-plugin/data/image/${name}`
-            try {
-                const res = await fetch(url)
-                if (!res.ok) { throw new Error(`HTTP 错误！状态码：${res.status}`) }
-                const buffer = await res.arrayBuffer()
-                fs.writeFile(file_name, Buffer.from(buffer), (err) => {
-                    if (err) reject(logger.error('QQGuild-plugin：写入文件时发生错误：', err))
-                    else resolve(logger.mark(`QQGuild-plugin：图片已下载至：${file_name}`))
-                })
-            } catch (error) {
-                logger.error('QQGuild-plugin：下载图片时发生错误：', error)
-                reject(error)
-            }
-        })
-    },
+
     /** 消息转换为Yunzai格式 */
     async msg(data) {
         const { appID, msg } = data
