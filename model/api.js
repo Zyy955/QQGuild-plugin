@@ -250,7 +250,7 @@ let QQGuildApi = {
         /** 子频道消息 */
         if (msg?.channel_id) channel_id = msg.channel_id
         /** 撤回子频道消息 */
-        else if (msg?.message?.channel_id) GuildId = msg.message.channel_id
+        else if (msg?.message?.channel_id) channel_id = msg.message.channel_id
         return channel_id
     },
     /** 从消息体中提取操作人id */
