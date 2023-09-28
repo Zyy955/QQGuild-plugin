@@ -136,6 +136,9 @@ token：`abcdefghijklmnopqrstuvwxyz123456`
 #我的id | #我的信息 | #ID | #信息
 ```
 
+## 支持更换前缀
+
+在配置文件可开启将`/`转换为`#`
 
 ## 爱发电
 

@@ -118,16 +118,16 @@
 </head>
 
 <body>
-    {{if Api_err}}
+    {{if error}}
     <div class="error_message">
-        <p><b>状态码：</b>{{Api_err.code}}</p>
-        <p><b>错误原因：</b>{{Api_err.message}}</p>
-        <p><b>错误标识符: </b>{{Api_err.traceid}}</p>
+        <p><b>状态码：</b>{{error.code}}</p>
+        <p><b>错误原因：</b>{{error.message}}</p>
+        <p><b>错误标识符: </b>{{error.traceid}}</p>
     </div>
     {{/if}}
     <div class="message" id="msg">
         <h4>原始消息：</h4>
     </div>
-    <div class="author"><b>Created By {{Yz.Yz.name}} <span>{{Yz.Yz.ver}}</span> & QQGulid-plugin
-            <span>{{Yz.ver}}</span></b></div>
+    <div class="author"><b>Created By {{Yz.name}} <span>{{Yz.ver}}</span> & QQGulid-plugin
+            <span>{{guild}}</span></b></div>
 </body>

@@ -5,33 +5,13 @@ import cfg from "../../../lib/config/config.js"
 import common from "../../../lib/common/common.js"
 import PluginsLoader from "../../../lib/plugins/loader.js"
 
-
-/** QQ频道适配器 */
-global.qg = {
-    cfg: {},
-    api: {},
-    guilds: {},
-    oldway: {},
-    ws: {},
-    /** 原方法 */
-    old: {
-        reply: PluginsLoader.reply,
-        dealMsg: PluginsLoader.dealMsg,
-        checkBlack: PluginsLoader.checkBlack,
-        sendMsg: Group.prototype.sendMsg,
-        getGroupMemberInfo: Bot.getGroupMemberInfo
-    }
+const old = {
+    reply: PluginsLoader.reply,
+    dealMsg: PluginsLoader.dealMsg,
+    checkBlack: PluginsLoader.checkBlack,
+    sendMsg: Group.prototype.sendMsg,
+    getGroupMemberInfo: Bot.getGroupMemberInfo
 }
-
-/** 版本、名称 */
-const Yz = JSON.parse(fs.readFileSync("./package.json", "utf-8"))
-qg.cfg = {
-    Yz: {
-        ver: Yz.version,
-        name: Yz.name === "miao-yunzai" ? "Miao-Yunzai" : "Yunzai-Bot",
-    }
-}
-
 
 /** 椰奶椰奶！ */
 if (fs.existsSync(process.cwd() + "/plugins/yenai-plugin")) {
@@ -50,30 +30,28 @@ if (fs.existsSync(process.cwd() + "/plugins/yenai-plugin")) {
 
 /** 劫持修改sendMsg方法 */
 Group.prototype.sendMsg = async function (content, source, anony = false) {
+    const info = this._info
     /** 判断是否为频道 */
-    const _info = this._info
-    if (_info?.guild_id && _info?.channel_id) {
-        const guild_id = _info.guild_id
-        const channel_id = _info.channel_id
-
-        /** 获取appID */
-        const id = qg.guilds[guild_id].appID
+    if (info?.guild_id && info?.channel_id) {
+        const { id, group_id, guild_id, channel_id, group_name } = info
         const data = {
-            appID: id,
+            id: id,
             msg: {
+                group_id: group_id,
                 guild_id: guild_id,
                 channel_id: channel_id
             },
-            eventType: "MESSAGE_CREATE"
+            eventType: "MESSAGE_CREATE",
+            group_name: group_name
         }
-        const ws = (await import("../../QQGuild-plugin/model/ws.js")).ws
-        return await ws.reply(data, content, anony)
+        const guild = (await import("../model/guild.js")).default
+        return await guild.reply(data, content, anony)
     }
     /** 带@ = PC微信HOOK */
-    else if (_info?.group_id && String(_info?.group_id).includes("@")) {
+    else if (info?.group_id && String(info?.group_id).includes("@")) {
         const data = {
             detail_type: "group",
-            group_id: _info.group_id,
+            group_id: info.group_id,
         }
         const Yunzai = (await import("../../WeChat-plugin/model/Yunzai.js")).Yunzai
         return await Yunzai.reply(content, data)
@@ -81,7 +59,7 @@ Group.prototype.sendMsg = async function (content, source, anony = false) {
     /** web等待完成... */
     else {
         /** 调用原始的 sendMsg 方法 */
-        return qg.old.sendMsg.call(this, content, source, anony)
+        return old.sendMsg.call(this, content, source, anony)
     }
 }
 
@@ -108,7 +86,7 @@ Bot.getGroupMemberInfo = async function (group_id, id) {
             rank: "潜水",
         }
     } else {
-        return qg.old.getGroupMemberInfo.call(this, group_id, id)
+        return old.getGroupMemberInfo.call(this, group_id, id)
     }
 }
 
@@ -609,21 +587,21 @@ let _loader = {
 
 
 /** 劫持修改主体一些基础处理方法 */
-if (qg.cfg.Yz.name === "Miao-Yunzai") {
+if (Bot.qg.YZ.name === "Miao-Yunzai") {
     /** 劫持回复方法 */
     PluginsLoader.reply = function (e) {
         if (e?.adapter) return _loader.reply.call(this, e)
-        return qg.old.reply.call(this, e)
+        return old.reply.call(this, e)
     }
     /** 劫持处理消息 */
     PluginsLoader.dealMsg = function (e) {
         if (e?.adapter) return _loader.dealMsg.call(this, e)
-        return qg.old.dealMsg.call(this, e)
+        return old.dealMsg.call(this, e)
     }
     /** 劫持黑白名单 */
     PluginsLoader.checkBlack = function (e) {
         if (e?.adapter) return _loader.checkBlack.call(this, e)
-        return qg.old.checkBlack.call(this, e)
+        return old.checkBlack.call(this, e)
     }
 
     /** 本体转发 */
@@ -636,17 +614,17 @@ else {
     /** 劫持回复方法 */
     PluginsLoader.reply = function (e) {
         if (e?.adapter) return _loader.Yz_reply.call(this, e)
-        return qg.old.reply.call(this, e)
+        return old.reply.call(this, e)
     }
     /** 劫持处理消息 */
     PluginsLoader.dealMsg = function (e) {
         if (e?.adapter) return _loader.Yz_dealMsg.call(this, e)
-        return qg.old.dealMsg.call(this, e)
+        return old.dealMsg.call(this, e)
     }
     /** 劫持黑白名单 */
     PluginsLoader.checkBlack = function (e) {
         if (e?.adapter) return _loader.Yz_checkBlack.call(this, e)
-        return qg.old.checkBlack.call(this, e)
+        return old.checkBlack.call(this, e)
     }
 
     /** 本体转发 */

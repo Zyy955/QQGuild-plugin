@@ -1,0 +1,244 @@
+import Api from "./api.js"
+import log_msg from "./log.js"
+import message from "./message.js"
+import PluginsLoader from "../../../lib/plugins/loader.js"
+import { createOpenAPI, createWebsocket } from "qq-guild-bot"
+
+logger.info("QQGuild-plugin初始化...")
+logger.info("https://github.com/Zyy955/QQGuild-plugin")
+
+export default new class guild {
+    /** 创建连接 */
+    monitor(bot) {
+        /** appID 用于识别是哪个机器人 */
+        this.id = bot.appID
+        if (!bot[this.id]?.intents) {
+            /** 监听事件 */
+            const intents = ["GUILDS", "GUILD_MEMBERS", "GUILD_MESSAGE_REACTIONS", "DIRECT_MESSAGE"]
+            /** 接收全部消息 */
+            if (bot.allMsg) intents.push("GUILD_MESSAGES")
+            /** 接收AT消息 */
+            else intents.push("PUBLIC_GUILD_MESSAGES")
+            /** 添加监听事件 */
+            bot.intents = intents
+        }
+
+        /** 保存到全局变量中 */
+        Bot[this.id] = bot
+        /** 创建 client */
+        Bot[this.id].client = createOpenAPI(Bot[this.id])
+        /** 创建 websocket 连接 */
+        Bot[this.id].ws = createWebsocket(Bot[this.id])
+        /** 建立ws链接 监听bot频道列表、频道资料、列表变化事件 */
+        Bot[this.id].ws.on('GUILDS', (data) => this.event(data))
+        /** 建立ws链接 监听频道成员变化事件 */
+        Bot[this.id].ws.on('GUILD_MEMBERS', (data) => this.event(data))
+        /** 建立ws链接 监听私信消息 */
+        Bot[this.id].ws.on('DIRECT_MESSAGE', (data) => this.event(data))
+        /** 建立ws链接 监听私域事件 */
+        Bot[this.id].ws.on('GUILD_MESSAGES', (data) => this.event(data))
+        /** 建立ws链接 监听公域事件 */
+        Bot[this.id].ws.on('PUBLIC_GUILD_MESSAGES', (data) => this.event(data))
+        /** 建立ws链接 监听表情动态事件 */
+        Bot[this.id].ws.on('GUILD_MESSAGE_REACTIONS', (data) => this.event(data))
+
+        /** 保存bot的信息 */
+        this.me()
+        /** 延迟下 */
+        this.sleep(100)
+        /** 获取一些基本信息 */
+        this.guilds()
+    }
+
+    /** @param ms 毫秒 */
+    sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms))
+    }
+
+    /** 保存bot的信息 */
+    async me() {
+        const bot = await Api.me(this.id)
+        /** 机器人名称 */
+        this.name = bot.username
+        /** 机器人的频道id */
+        this.guild_id = bot.id
+
+        /** 保存到全局变量中 */
+        Bot[this.id].id = bot.id
+        Bot[this.id].name = bot.username
+        Bot[this.id].avatar = bot.avatar
+    }
+
+    /** 获取一些基本信息 */
+    async guilds() {
+        /** 加载机器人所在频道、将对应的子频道信息存入变量中用于后续调用 */
+        /* 
+        返回的字段、后续可往Bot.gl添加头像，锅巴可识别
+        {
+    id: 'xxxxxx',
+    name: 'Ost测试频道',
+    icon: 'xxxxxx',
+    owner: false,
+  },
+        */
+        const meGuilds = await Api.meGuilds(this.id)
+
+        for (let qg of meGuilds) {
+            /** 保存一些初始配置 */
+            const guildInfo = { ...qg, channels: {} }
+            Bot.qg.guilds[qg.id] = guildInfo
+            Bot.qg.guilds[qg.id].id = this.id
+
+            /** 判断机器人是否为超级管理员 */
+            try {
+                const admin = await Api.guildMember(this.id, qg.id, user.id)
+                Bot.qg.guilds[qg.id].admin = admin.roles.includes("2") ? true : false
+            } catch (err) {
+                Bot.qg.guilds[qg.id].admin = false
+            }
+
+            try {
+                /** 添加子频道列表到Bot.gl中，用于主动发送消息 */
+                const channelList = await Api.channels(this.id, qg.id)
+                for (const i of channelList) {
+                    const guild_name = Bot.qg.guilds[i.guild_id]?.name || ""
+                    Bot.gl.set(`qg_${i.guild_id}-${i.id}`, {
+                        id: this.id,
+                        group_id: `qg_${i.guild_id}-${i.id}`,
+                        group_name: guild_name ? `${guild_name}-${i.name}` : "未知",
+                        guild_id: i.guild_id,
+                        guild_name: guild_name,
+                        channel_id: i.id,
+                        channel_name: i.name
+                    })
+                }
+
+                /** 忘了干啥的... */
+                for (let subChannel of channelList) {
+                    guildInfo.channels[subChannel.id] = subChannel.name
+                }
+            } catch (err) {
+                logger.error(`QQ频道机器人 [${this.name}(${this.id}) 无权在 [${qg.name}] 获取子频道列表...请在机器人设置-权限设置-频道权限中，给予基础权限...`)
+            }
+        }
+
+        /** 米游社主动推送、椰奶状态pro */
+        if (!Bot?.adapter) {
+            Bot.adapter = [Bot.uin]
+            Bot.adapter.push(this.id)
+        } else {
+            Bot.adapter.push(this.id)
+            /** 去重防止断连后出现多个重复的id */
+            Bot.adapter = Array.from(new Set(Bot.adapter.map(JSON.stringify))).map(JSON.parse)
+        }
+        Bot[this.id] = {
+            ...Bot[this.id],
+            uin: this.id,
+            [this.id]: this.id,
+            nickname: this.name.replace("-测试中", ""),
+            avatar: Bot[this.id].avatar,
+            stat: { start_time: Date.now() / 1000 },
+            apk: { display: Bot.qg.guild.name, version: Bot.qg.guild.ver },
+            fl: new Map(),
+            gl: new Map(),
+            version: { id: "qg", name: "QQ频道Bot", version: Bot.qg.guild.guild_ver },
+            pickGroup: (groupId) => {
+                const [guild_id, channel_id] = groupId.replace("qg_", "").split('-')
+                const data = {
+                    id: this.id,
+                    msg: {
+                        guild_id: guild_id,
+                        channel_id: channel_id
+                    },
+                    eventType: "MESSAGE_CREATE"
+                }
+                return {
+                    sendMsg: (reply, reference = false) => {
+                        return this.reply(data, reply, reference)
+                    },
+                    makeForwardMsg: async (forwardMsg) => {
+                        return await message.makeForwardMsg(forwardMsg)
+                    },
+                }
+            }
+        }
+        logger.mark(logger.green(`Bot：${this.name}(${this.id}) 连接成功~`))
+        /** 检测是否重启 */
+        const restart = await redis.get("qg:restart")
+        if (restart) await this.init(restart)
+    }
+
+    /** 根据对应事件进行对应处理 */
+    async event(data) {
+        data.id = this.id
+        const msg = data.msg
+        switch (data.eventType) {
+            /** 私域 */
+            case "MESSAGE_CREATE":
+                PluginsLoader.deal(await message.msg(data))
+                break
+            /** 私信 */
+            case "DIRECT_MESSAGE_CREATE":
+                PluginsLoader.deal(await message.msg(data, "私信"))
+                break
+            /** 公域事件 仅接收@机器人消息 */
+            case "AT_MESSAGE_CREATE":
+                PluginsLoader.deal(await message.msg(data))
+                break
+            /** 其他事件不需要给云崽、直接单独处理即可 */
+            default:
+                await log_msg.event(data, this.id)
+                break
+        }
+    }
+
+    /** 发送主动消息 解除私信限制 */
+    Sendprivate = async (data) => {
+        const { msg } = data
+        const new_msg = {
+            source_guild_id: msg.guild_id,
+            recipient_id: msg.author.id
+        }
+        const _data = await Api.createDirectMessage(this.id, new_msg)
+        const hi = "QQGuild-plugin：你好~"
+        logger.info(`${this.name} 发送私信消息：${hi}`)
+        await Api.postDirectMessage(this.id, _data.data.guild_id, { content: hi })
+    }
+
+    /** 处理消息、转换格式 */
+    async reply(data, msg, reference) {
+        if (msg === "开始执行重启，请稍等...") await this.restart(data)
+        /** 处理云崽过来的消息 */
+        const api_msg = (await import("./api_msg.js")).default
+        return await api_msg.message(data, msg, reference)
+    }
+
+    /** 保存重启到redis中 */
+    async restart(data) {
+        const type = data.eventType === "DIRECT_MESSAGE_CREATE" ? "私信" : "群聊"
+        const { id, guild_id, channel_id } = data.msg
+        const cfg = JSON.stringify({
+            type: type,
+            time: new Date().getTime(),
+            appID: data.appID,
+            id: id,
+            guild_id: guild_id,
+            channel_id: channel_id,
+        })
+        await redis.set("qg:restart", cfg, { EX: 120 })
+    }
+
+    /** 重启后发送主动消息 */
+    async init(restart) {
+        const cfg = JSON.parse(restart)
+        const { type, appID, id, guild_id, channel_id } = cfg
+        const time = (new Date().getTime() - cfg.time || new Date().getTime()) / 1000
+        const msg = `重启成功：耗时${time.toFixed(2)}秒`
+        if (type === "私信") {
+            await Api.postDirectMessage(appID, guild_id, { content: msg, msg_id: id })
+        } else {
+            await Api.postMessage(appID, channel_id, { content: msg, msg_id: id })
+        }
+        redis.del("qg:restart")
+    }
+}
