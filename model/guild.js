@@ -173,13 +173,12 @@ export default class guild {
         logger.mark(logger.green(`Bot：${this.name}(${id}) 连接成功~`))
         /** 检测是否重启 */
         const restart = await redis.get("qg:restart")
-        if (restart) await this.init(restart)
+        if (restart) if (JSON.parse(restart).appID === id) await this.init(restart)
     }
 
     /** 根据对应事件进行对应处理 */
     async event(data) {
         const { id } = data
-        console.log("🚀 ~ file: guild.js:182 ~ guild ~ event ~ id:", id)
         switch (data.eventType) {
             /** 私域 */
             case "MESSAGE_CREATE":
@@ -228,7 +227,7 @@ export default class guild {
         const cfg = JSON.stringify({
             type: type,
             time: new Date().getTime(),
-            appID: data.appID,
+            appID: data.id,
             id: id,
             guild_id: guild_id,
             channel_id: channel_id,
