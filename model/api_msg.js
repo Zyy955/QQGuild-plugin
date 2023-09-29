@@ -130,7 +130,7 @@ export default new class api_msg {
         const whiteRegex = new RegExp(`\\b(${urls.map(url => url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'g')
         /** 将url转二维码 */
         if (!msg.match(whiteRegex)) {
-            const urlRegex = /（https？：\/\/）？（（[0-9a-z.-]+\.[a-z]+）|（（[0-9]{1,3}\.）{3}[0-9]{1,3}））（：[0-9]+）？（\/[0-9a-z%/.\-_#]*）？（\？[0-9a-z=&%_\-.]*）？（\#[0-9a-z=&%_\-]*）？/ig
+          const urlRegex = /(https?:\/\/)?(([0-9a-z.-]+\.[a-z]+)|(([0-9]{1,3}\.){3}[0-9]{1,3}))(:[0-9]+)?(\/[0-9a-z%/.\-_#]*)?(\?[0-9a-z=&%_\-.]*)?(\#[0-9a-z=&%_\-]*)?/ig
             if (urlRegex.test(msg)) {
                 /** 二次检测 防止奇怪的url */
                 const url_a = (s, protocols = ["http", "https"]) => {
