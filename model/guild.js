@@ -78,15 +78,6 @@ export default class guild {
     /** 获取一些基本信息 */
     async guilds(id) {
         /** 加载机器人所在频道、将对应的子频道信息存入变量中用于后续调用 */
-        /* 
-        返回的字段、后续可往Bot.gl添加头像，锅巴可识别
-        {
-    id: 'xxxxxx',
-    name: 'Ost测试频道',
-    icon: 'xxxxxx',
-    owner: false,
-  },
-        */
         const meGuilds = await Api.meGuilds(id)
 
         for (let qg of meGuilds) {

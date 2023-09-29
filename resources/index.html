@@ -62,8 +62,9 @@
             line-height: 0.5;
         }
 
-        .error_message {
+        .error {
             width: auto;
+            height: auto;
             min-height: 0;
             margin: 15px;
             margin-top: 3vh;
@@ -77,7 +78,9 @@
             scrollbar-color: #888 #f5f5f5;
             white-space: normal;
             word-wrap: break-word;
-            line-height: 0.3;
+            line-height: 1.5;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
         }
 
         .author {
@@ -98,35 +101,67 @@
     <script>
         window.onload = function () {
             const msg = "{{msg}}"
-            const msg_split = msg.split('\n\n')
             const old_div = document.getElementById('msg')
-            // 创建并插入div
-            for (let i = 0; i < msg_split.length; i++) {
+
+            // 检查消息是否是一个Base64编码的图片
+            if (msg.startsWith('base64://')) {
                 const div = document.createElement('div')
                 div.classList.add('normal-text')
 
-                const list = msg_split[i].split('\n')
-                for (let j = 0; j < list.length; j++) {
-                    const text = document.createTextNode(list[j])
-                    div.appendChild(text)
-                }
+                // 修改图片容器的宽度
+                document.body.style.maxWidth = "300px"
+
+                // 修改容器为居中显示
+                const _err = document.querySelector('.error')
+                _err.style.textAlign = 'center'
+                const _msg = document.querySelector('.message')
+                _msg.style.textAlign = 'center'
+
+                // 在循环之前添加一个p标签
+                old_div.innerHTML = '<p>请扫码查看：</p>'
+
+                // 图片
+                const img = document.createElement('img')
+                img.src = "data:image/png;base64," + msg.replace("base64://", "")
+                div.appendChild(img)
                 old_div.appendChild(div)
+            } else {
+                // 在循环之前添加一个p标签
+                old_div.innerHTML = '<p>原始消息：</p>'
+
+                const msg_split = msg.split('\n\n')
+                // 创建并插入div
+                for (let i = 0; i < msg_split.length; i++) {
+                    const div = document.createElement('div')
+                    div.classList.add('normal-text')
+
+                    const list = msg_split[i].split('\n')
+                    for (let j = 0; j < list.length; j++) {
+                        const text = document.createTextNode(list[j])
+                        div.appendChild(text)
+                    }
+                    old_div.appendChild(div)
+                }
             }
-        }
+        }        
     </script>
 
 </head>
 
 <body>
-    {{if error}}
-    <div class="error_message">
+    {{if typeof error === 'string'}}
+    <div class="error">
+        <p><b>初始链接：</b>{{error}}</p>
+    </div>
+    {{else if error && typeof error === 'object'}}
+    <div class="error">
         <p><b>状态码：</b>{{error.code}}</p>
         <p><b>错误原因：</b>{{error.message}}</p>
         <p><b>错误标识符: </b>{{error.traceid}}</p>
     </div>
     {{/if}}
+
     <div class="message" id="msg">
-        <h4>原始消息：</h4>
     </div>
     <div class="author"><b>Created By {{Yz.name}} <span>{{Yz.ver}}</span> & QQGulid-plugin
             <span>{{guild}}</span></b></div>

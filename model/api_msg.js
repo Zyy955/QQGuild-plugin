@@ -1,5 +1,7 @@
 import fs from "fs"
+import { URL } from "url"
 import Api from "./api.js"
+import lodash from "lodash"
 import qrcode from "qrcode"
 import fetch from "node-fetch"
 import { FormData, Blob } from "node-fetch"
@@ -103,6 +105,8 @@ export default new class api_msg {
                         const SendMsg = await this.Construct_data(data, { content: await this.urlHandler(data, i.text), ...image || null }, false)
                         await this.SendMsg(data, SendMsg)
                     } else {
+                        /** 随机延迟 */
+                        await common.sleep(300)
                         content.push(await this.urlHandler(data, `${i.text}\n\n`))
                     }
                     break
@@ -121,31 +125,41 @@ export default new class api_msg {
 
     /** 对url进行特殊处理，防止发送失败 */
     async urlHandler(data, msg) {
-        /** 延迟下... */
-        await new Promise((resolve) => setTimeout(resolve, 500))
         if (typeof msg !== 'string') return msg
         const urls = Bot.qg.cfg.whitelist_Url
         const whiteRegex = new RegExp(`\\b(${urls.map(url => url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'g')
         /** 将url转二维码 */
         if (!msg.match(whiteRegex)) {
-            const urlRegex = /(https?:\/\/)?(([0-9a-z.-]+\.[a-z]+)|(([0-9]{1,3}\.){3}[0-9]{1,3}))(:[0-9]+)?(\/[0-9a-z%/.\-_#]*)?(\?[0-9a-z=&%_\-.]*)?(\#[0-9a-z=&%_\-]*)?/ig
+            const urlRegex = /(https?:\/\/)?(([0-9a-z.-]+\.[a-z]+)|((?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)))(:[0-9]+)?(\/[0-9a-z%/.\-_#]*)?(\?[0-9a-z=&%_\-.]*)?(\#[0-9a-z=&%_\-]*)?/ig
             if (urlRegex.test(msg)) {
-                /** 将url转二维码 */
+                /** 二次检测 防止奇怪的url */
+                const url_a = (s, protocols = ["http", "https"]) => {
+                    try {
+                        new URL(s.match(/^[a-zA-Z]+:\/\//) ? s : `${protocols[0]}://${s}`)
+                        return true
+                    } catch (err) {
+                        return protocols.length > 1 ? url_a(s, protocols.slice(1)) : false
+                    }
+                }
                 return msg.replace(urlRegex, url => {
-                    // try { new URL(url) } catch (error) { return url }
+                    /** 二次确认当前是否为url */
+                    if (!url_a(url)) return url
                     logger.info(logger.green(`未通过url白名单，正在转为二维码发送...\n初始URL：${url}`))
                     qrcode.toBuffer(url, {
-                        errorCorrectionLevel: 'H',
-                        type: 'png',
+                        errorCorrectionLevel: "H",
+                        type: "png",
                         margin: 4,
-                        text: url // 添加文本
+                        text: url
                     }, async (err, buffer) => {
                         if (err) throw err
-                        const Api_msg = { content: null, type: "file_image", image: buffer, log: "[图片：base64://...]" }
+                        const base64 = "base64://" + buffer.toString("base64")
+                        const Uint8Array = await this.picture_reply(base64, url)
+                        const Api_msg = { content: "", type: "file_image", image: Uint8Array, log: "[图片：base64://...]" }
                         /** 构建请求参数、打印日志 */
                         const SendMsg = await this.Construct_data(data, Api_msg, false)
                         await this.SendMsg(data, SendMsg)
                     })
+
                     return "{请扫码查看链接}"
                 })
             }
@@ -284,10 +298,13 @@ export default new class api_msg {
 
     /** 向API发送消息 */
     async SendMsg(data, SendMsg) {
+
+        /** 随机延迟 */
+        await common.sleep(lodash.random(300, 1000))
+
         const { id, msg } = data
         const msg_id = msg.id
         const { guild_id, channel_id } = msg
-
 
         /** 发送消息并储存res */
         let res
@@ -329,9 +346,10 @@ export default new class api_msg {
             msg: content,
             saveId: 'QQGuild-plugin',
             _plugin: 'QQGuild-plugin',
-            tplFile: './plugins/QQGuild-plugin/resources/error_msg.html',
+            tplFile: './plugins/QQGuild-plugin/resources/index.html',
         }
-        return (await puppeteer.screenshot(`QQGuild-plugin/QQGuild-plugin`, data)).file
+        const msg = await puppeteer.screenshot(`QQGuild-plugin/QQGuild-plugin`, data)
+        return msg.file
     }
 
 }
