@@ -140,6 +140,10 @@ token：`abcdefghijklmnopqrstuvwxyz123456`
 
 在配置文件可开启将`/`转换为`#`
 
+## 已知问题
+
+目前如果两个机器人在同一个频道，并且其中一个非管理员，在非管理员不可见的频道触发指令后，会导致管理员的机器人报错`11263`，根据官方文档，这是系统错误，暂无法解决。
+
 ## 爱发电
 
 ![爱发电](https://cdn.jsdelivr.net/gh/Zyy955/imgs/img/202308271209508.jpeg)
@@ -148,15 +152,15 @@ token：`abcdefghijklmnopqrstuvwxyz123456`
 
 ## 鸣谢
 
-| 名称 | 作者 | GitHub | Gitee | 备注  | 
-|------| ---- | ------ | ----- | ----- | 
-| QQ机器人 | ----- | ----- | ----- | [QQ机器人](https://q.qq.com/) |
-| QQ机器人文档 | ----- | ----- | ----- | [QQ机器人文档](https://bot.q.qq.com/wiki) |
-| NodeJS-SDK | ----- | ----- | ----- | [NodeJS-SDK](https://github.com/tencent-connect/bot-node-sdk) |
-| Yunzai-Bot | [@Le-niao](https://gitee.com/Le-niao) | [☞GitHub](https://github.com/Le-niao/Yunzai-Bot) | [☞Gitee](https://gitee.com/Le-niao/Yunzai-Bot) | 原版 Yunzai |
-| Yunzai-Bot | [@喵喵](https://gitee.com/yoimiya-kokomi) | [☞GitHub](https://github.com/yoimiya-kokomi/Yunzai-Bot) | [☞Gitee](https://gitee.com/yoimiya-kokomi/Yunzai-Bot) | 喵喵维护版 Yunzai |
-| Miao-Yunzai | [@喵喵](https://gitee.com/yoimiya-kokomi) | [☞GitHub](https://github.com/yoimiya-kokomi/Miao-Yunzai) | [☞Gitee](https://gitee.com/yoimiya-kokomi/Miao-Yunzai) | 喵版 Yunzai |
-| Yunzai-Bot 索引库 | [@渔火Arcadia](https://gitee.com/yhArcadia) | [☞GitHub](https://github.com/yhArcadia/Yunzai-Bot-plugins-index) | [☞Gitee](https://gitee.com/yhArcadia/Yunzai-Bot-plugins-index) | 云崽相关内容索引库 |
+| 名称              | 作者                                        | GitHub                                                           | Gitee                                                          | 备注                                                          |
+| ----------------- | ------------------------------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------- |
+| QQ机器人          | -----                                       | -----                                                            | -----                                                          | [QQ机器人](https://q.qq.com/)                                 |
+| QQ机器人文档      | -----                                       | -----                                                            | -----                                                          | [QQ机器人文档](https://bot.q.qq.com/wiki)                     |
+| NodeJS-SDK        | -----                                       | -----                                                            | -----                                                          | [NodeJS-SDK](https://github.com/tencent-connect/bot-node-sdk) |
+| Yunzai-Bot        | [@Le-niao](https://gitee.com/Le-niao)       | [☞GitHub](https://github.com/Le-niao/Yunzai-Bot)                 | [☞Gitee](https://gitee.com/Le-niao/Yunzai-Bot)                 | 原版 Yunzai                                                   |
+| Yunzai-Bot        | [@喵喵](https://gitee.com/yoimiya-kokomi)   | [☞GitHub](https://github.com/yoimiya-kokomi/Yunzai-Bot)          | [☞Gitee](https://gitee.com/yoimiya-kokomi/Yunzai-Bot)          | 喵喵维护版 Yunzai                                             |
+| Miao-Yunzai       | [@喵喵](https://gitee.com/yoimiya-kokomi)   | [☞GitHub](https://github.com/yoimiya-kokomi/Miao-Yunzai)         | [☞Gitee](https://gitee.com/yoimiya-kokomi/Miao-Yunzai)         | 喵版 Yunzai                                                   |
+| Yunzai-Bot 索引库 | [@渔火Arcadia](https://gitee.com/yhArcadia) | [☞GitHub](https://github.com/yhArcadia/Yunzai-Bot-plugins-index) | [☞Gitee](https://gitee.com/yhArcadia/Yunzai-Bot-plugins-index) | 云崽相关内容索引库                                            |
 
 ## 免责声明：
 使用此插件产生的一切后果与本人均无关

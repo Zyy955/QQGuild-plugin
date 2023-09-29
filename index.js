@@ -202,7 +202,7 @@ let apps = {
         /** 保存新配置 */
         cfg.addIn(cmd[2], bot)
         try {
-            guild.monitor(bot)
+            await (new guild).monitor(bot)
             return `Bot：${cmd[2]} 已连接...`
         } catch (err) {
             return err

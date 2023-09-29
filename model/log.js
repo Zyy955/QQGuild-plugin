@@ -1,13 +1,11 @@
 import Api from "./api.js"
 export default new class log_msg {
     /** 处理简单事件 */
-    async event(data, id) {
+    async event(data) {
         /** 机器人id */
-        this.id = id
+        const { id, msg } = data
         /** 机器人名称 */
-        this.name = Bot[this.id].name
-
-        const { msg } = data
+        this.name = Bot[id].name
         /** 频道id */
         let GuildId = await Api.GuildId(msg)
         /** 子频道id */
@@ -20,12 +18,12 @@ export default new class log_msg {
         /** 获取子频道名称 */
         let channel_name = GuildId && channel_id ? (Bot.qg.guilds?.[GuildId].channels[channel_id] || channel_id) : channel_id
         /** 操作人名称 */
-        let op_user_name = op_user_id ? ((await Api.guildMember(this.id, GuildId, op_user_id)).nick || op_user_id) : op_user_id
+        let op_user_name = op_user_id ? ((await Api.guildMember(id, GuildId, op_user_id)).nick || op_user_id) : op_user_id
         /** 用户名称 */
         let user_name = msg.author?.username || msg.message?.author?.username || msg.user?.username
         if (!user_name || user_name === "") {
             let user_Id = msg.author?.id || msg.message?.author.id || msg?.user_id
-            user_name = (await Api.guildMember(this.id, GuildId, user_Id)).nick
+            user_name = (await Api.guildMember(id, GuildId, user_Id)).nick
         }
 
         switch (data.eventType) {
@@ -94,7 +92,7 @@ export default new class log_msg {
                 }
                 break
             default:
-                logger.mark(`${this.name} [${this.id}] 未知事件：`, data)
+                logger.mark(`${this.name} [${id}] 未知事件：`, data)
                 break
         }
     }

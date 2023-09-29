@@ -11,8 +11,7 @@ export default new class message {
         let e = {}
         /** 获取消息体、appID */
         const { msg, id } = data
-        /** id 用于识别哪个机器人 */
-        this.id = id
+               
         /** 获取时间戳 */
         const time = parseInt(Date.parse(msg.timestamp) / 1000)
         /** 获取用户的身份组信息 */
@@ -57,10 +56,10 @@ export default new class message {
             message_type: message_type,
             post_type: "message",
             sub_type: sub_type,
-            self_id: this.id,
+            self_id: id,
             seq: msg.seq,
             time: time,
-            uin: this.id,
+            uin: id,
             user_id: user_id
         }
 
@@ -98,11 +97,11 @@ export default new class message {
             /** 禁言 */
             mute: async (time) => {
                 const options = { seconds: time }
-                await Api.muteMember(this.id, msg.guild_id, msg.author.id, options)
+                await Api.muteMember(id, msg.guild_id, msg.author.id, options)
             },
             /** 踢 */
             kick: async () => {
-                await Api.deleteGuildMember(this.id, msg.guild_id, msg.author.id)
+                await Api.deleteGuildMember(id, msg.guild_id, msg.author.id)
             }
         }
 
@@ -116,11 +115,11 @@ export default new class message {
         if (type === "私信") {
             e.friend = {
                 sendMsg: async (reply, reference) => {
-                    return await guild.reply(data, reply, reference)
+                    return await (new guild).reply(data, reply, reference)
                 },
                 recallMsg: (msg_id) => {
-                    logger.info(`${Bot[this.id].name} 撤回消息：${msg_id}`)
-                    return Api.deleteMessage(this.id, msg.channel_id, msg_id, false)
+                    logger.info(`${Bot[id].name} 撤回消息：${msg_id}`)
+                    return Api.deleteMessage(id, msg.channel_id, msg_id, false)
                 },
                 makeForwardMsg: async (forwardMsg) => {
                     return await this.makeForwardMsg(forwardMsg, data)
@@ -142,11 +141,11 @@ export default new class message {
                     return ["message", "test"]
                 },
                 recallMsg: (msg_id) => {
-                    logger.info(`${Bot[this.id].name} 撤回消息：${msg_id}`)
-                    return Api.deleteMessage(this.id, msg.channel_id, msg_id, false)
+                    logger.info(`${Bot[id].name} 撤回消息：${msg_id}`)
+                    return Api.deleteMessage(id, msg.channel_id, msg_id, false)
                 },
                 sendMsg: async (reply, reference) => {
-                    return await guild.reply(data, reply, reference)
+                    return await (new guild).reply(data, reply, reference)
                 },
                 makeForwardMsg: async (forwardMsg) => {
                     return await this.makeForwardMsg(forwardMsg, data)
@@ -157,11 +156,11 @@ export default new class message {
         /** 快速撤回 */
         e.recall = () => {
             logger.info(`${this.name} 撤回消息：${msg.id}`)
-            return Api.deleteMessage(this.id, msg.channel_id, msg.id, false)
+            return Api.deleteMessage(id, msg.channel_id, msg.id, false)
         }
         /** 快速回复 */
         e.reply = async (reply, reference) => {
-            return await guild.reply(data, reply, reference)
+            return await (new guild).reply(data, reply, reference)
         }
         /** 将收到的消息转为字符串 */
         e.toString = () => {
@@ -170,7 +169,7 @@ export default new class message {
 
         /** 引用消息 */
         if (msg?.message_reference?.message_id) {
-            const reply = (await Api.message(this.id, msg.channel_id, msg.message_reference.message_id)).message
+            const reply = (await Api.message(id, msg.channel_id, msg.message_reference.message_id)).message
             let message = []
             if (reply.attachments) {
                 for (let i of reply.attachments) {
@@ -217,7 +216,7 @@ export default new class message {
                 if (i.startsWith("<@")) {
                     let user_id = i.slice(3, -1)
                     const name = at_name(user_id)
-                    if (this.id === user_id) {
+                    if (id === user_id) {
                         user_id = Bot.uin
                         atBot = true
                     } else {
@@ -311,7 +310,7 @@ export default new class message {
 
     /** 处理日志 */
     log(e) {
-        const name = Bot[this.id].name
+        const name = Bot[e.uin].name
         let group_name
         if (e.message_type === "group") {
             group_name = e.group_name

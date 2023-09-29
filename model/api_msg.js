@@ -10,12 +10,11 @@ import puppeteer from "../../../lib/puppeteer/puppeteer.js"
 export default new class api_msg {
     /** 处理消息 */
     async message(data, msg, reference) {
-        this.id = data.id
         this.reference = reference
         /** 统一为数组 */
         msg = this.formatUnify(msg)
         /** 转为api格式、打印日志、发送 */
-        return await this.Api_msg(data, msg)
+        return await this.Api_msg(data, msg, reference)
     }
 
     /** 将云崽过来的消息全部统一格式存放到数组里面 */
@@ -55,7 +54,7 @@ export default new class api_msg {
     }
 
     /** 转为api格式 */
-    async Api_msg(data, msg) {
+    async Api_msg(data, msg, reference) {
         let image = {}
         let content = []
         const data_msg = data.msg
@@ -89,7 +88,7 @@ export default new class api_msg {
                         /** 延迟下... */
                         await common.sleep(200)
                         /** 构建请求参数、打印日志 */
-                        const SendMsg = await this.Construct_data(data, img)
+                        const SendMsg = await this.Construct_data(data, img, false)
                         await this.SendMsg(data, SendMsg)
                     } else {
                         image = img
@@ -101,7 +100,7 @@ export default new class api_msg {
                         /** 延迟下... */
                         await common.sleep(200)
                         /** 构建请求参数、打印日志 */
-                        const SendMsg = await this.Construct_data(data, { content: await this.urlHandler(data, i.text), ...image || null })
+                        const SendMsg = await this.Construct_data(data, { content: await this.urlHandler(data, i.text), ...image || null }, false)
                         await this.SendMsg(data, SendMsg)
                     } else {
                         content.push(await this.urlHandler(data, `${i.text}\n\n`))
@@ -112,11 +111,11 @@ export default new class api_msg {
                     break
             }
         }
-        
+
         content = content.join("").replace(/\n{1,2}$/g, '').replace(/\n{3,4}/g, '\n')
         const Api_msg = { content: content, ...image }
         if (!content && content === "" && Object.keys(image).length === 0) return
-        const SendMsg = await this.Construct_data(data, Api_msg)
+        const SendMsg = await this.Construct_data(data, Api_msg, reference)
         return await this.SendMsg(data, SendMsg)
     }
 
@@ -212,7 +211,7 @@ export default new class api_msg {
     }
 
     /** 构建请求参数并打印日志 */
-    async Construct_data(data, Api_msg) {
+    async Construct_data(data, Api_msg, reference) {
         let logs = ""
         let SendMsg = {}
         const { msg } = data
@@ -227,7 +226,7 @@ export default new class api_msg {
             case "url":
                 logs += Api_msg.log
                 /** 引用消息 */
-                if (this.reference) {
+                if (reference) {
                     SendMsg.message_reference = {
                         message_id: msg?.id,
                         ignore_get_message_error: true
@@ -238,7 +237,7 @@ export default new class api_msg {
                 break
             default:
                 /** 引用消息 */
-                if (this.reference) {
+                if (reference) {
                     SendMsg.message_reference = {
                         message_id: msg?.id,
                         ignore_get_message_error: true
@@ -265,8 +264,8 @@ export default new class api_msg {
 
     /** 打印日志 */
     log(data, logs) {
-        const { group_name } = data
-        const bot = `${Bot[this.id].name} 发送消息：`
+        const { id, group_name } = data
+        const bot = `${Bot[id].name} 发送消息：`
         switch (data.eventType) {
             /** 私信 */
             case "DIRECT_MESSAGE_CREATE":
@@ -285,21 +284,23 @@ export default new class api_msg {
 
     /** 向API发送消息 */
     async SendMsg(data, SendMsg) {
-        const { msg } = data
-        const { guild_id, channel_id, id } = msg
+        const { id, msg } = data
+        const msg_id = msg.id
+        const { guild_id, channel_id } = msg
+
 
         /** 发送消息并储存res */
         let res
         try {
             /** 判断频道还是私聊 */
             data.eventType === "DIRECT_MESSAGE_CREATE"
-                ? res = await Api.postDirectMessage(this.id, guild_id, SendMsg)
-                : res = await Api.postMessage(this.id, channel_id, SendMsg)
+                ? res = await Api.postDirectMessage(id, guild_id, SendMsg)
+                : res = await Api.postMessage(id, channel_id, SendMsg)
         } catch (error) {
-            logger.error(`${Bot[this.id].name} 发送消息错误，正在转成图片重新发送...\n错误信息：`, error)
+            logger.error(`${Bot[id].name} 发送消息错误，正在转成图片重新发送...\n错误信息：`, error)
             /** 转换为图片发送 */
             let image = new FormData()
-            if (id) image.set("msg_id", id)
+            if (msg_id) image.set("msg_id", msg_id)
 
             let content = null
             if (data?.content) content = data?.content?.replace(/\n/g, "\\n")
@@ -307,8 +308,8 @@ export default new class api_msg {
 
             /** 判断频道还是私聊 */
             data.eventType === "DIRECT_MESSAGE_CREATE"
-                ? res = await Api.postDirectMessage(this.id, guild_id, image)
-                : res = await Api.postMessage(this.id, channel_id, image)
+                ? res = await Api.postDirectMessage(id, guild_id, image)
+                : res = await Api.postMessage(id, channel_id, image)
         }
         /** 返回消息id给撤回用？ */
         return {

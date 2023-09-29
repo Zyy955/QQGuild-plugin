@@ -50,10 +50,6 @@ Bot.qg = {
 /** 检查配置文件是否存在 */
 if (fs.existsSync(_path + "/bot.yaml")) {
     const bot = Yaml.parse(fs.readFileSync(_path + "/bot.yaml", "utf8"))
-    /** 加载配置 */
-    for (const i in bot) {
-        if (i === "default") continue
-        guild.monitor(bot[i])
-    }
+    await (new guild).monitor(bot)
 }
 

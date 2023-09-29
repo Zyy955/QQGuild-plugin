@@ -87,10 +87,3 @@ export default class Yaml_ {
   }
 }
 
-// let bot_Yaml = new Yaml_("./plugins/QQGuild-plugin/config/config.yaml")
-// console.log(bot_Yaml.addVal("channel_whitelist", { a: "1", b: "3" }))
-
-
-// let cfg_Yaml = new Yaml_("../config/config.yaml")
-
-

@@ -7,47 +7,53 @@ import { createOpenAPI, createWebsocket } from "qq-guild-bot"
 logger.info("QQGuild-plugin初始化...")
 logger.info("https://github.com/Zyy955/QQGuild-plugin")
 
-export default new class guild {
+export default class guild {
     /** 创建连接 */
-    monitor(bot) {
-        /** appID 用于识别是哪个机器人 */
-        this.id = bot.appID
-        if (!bot[this.id]?.intents) {
-            /** 监听事件 */
-            const intents = ["GUILDS", "GUILD_MEMBERS", "GUILD_MESSAGE_REACTIONS", "DIRECT_MESSAGE"]
-            /** 接收全部消息 */
-            if (bot.allMsg) intents.push("GUILD_MESSAGES")
-            /** 接收AT消息 */
-            else intents.push("PUBLIC_GUILD_MESSAGES")
-            /** 添加监听事件 */
-            bot.intents = intents
+    async monitor(cfg) {
+        /** 加载配置 */
+        for (let i in cfg) {
+            if (i === "default") continue
+            /** ID 用于识别是哪个机器人 */
+            let id = cfg[i].appID
+
+            if (!cfg[i][id]?.intents) {
+                /** 监听事件 */
+                const intents = ["GUILDS", "GUILD_MEMBERS", "GUILD_MESSAGE_REACTIONS", "DIRECT_MESSAGE"]
+                /** 接收全部消息 */
+                if (cfg[i].allMsg) intents.push("GUILD_MESSAGES")
+                /** 接收AT消息 */
+                else intents.push("PUBLIC_GUILD_MESSAGES")
+                /** 添加监听事件 */
+                cfg[i].intents = intents
+            }
+
+            /** 保存到全局变量中 */
+            Bot[id] = cfg[i]
+            /** 创建 client */
+            Bot[id].client = createOpenAPI(Bot[id])
+            /** 创建 websocket 连接 */
+            Bot[id].ws = createWebsocket(Bot[id])
+            /** 建立ws链接 监听bot频道列表、频道资料、列表变化事件 */
+            Bot[id].ws.on('GUILDS', (data) => { data.id = id, this.event(data) })
+            /** 建立ws链接 监听频道成员变化事件 */
+            Bot[id].ws.on('GUILD_MEMBERS', (data) => { data.id = id, this.event(data) })
+            /** 建立ws链接 监听私信消息 */
+            Bot[id].ws.on('DIRECT_MESSAGE', (data) => { data.id = id, this.event(data) })
+            /** 建立ws链接 监听私域事件 */
+            Bot[id].ws.on('GUILD_MESSAGES', (data) => { data.id = id, this.event(data) })
+            /** 建立ws链接 监听公域事件 */
+            Bot[id].ws.on('PUBLIC_GUILD_MESSAGES', (data) => { data.id = id, this.event(data) })
+            /** 建立ws链接 监听表情动态事件 */
+            Bot[id].ws.on('GUILD_MESSAGE_REACTIONS', (data) => { data.id = id, this.event(data) })
+
+
+            /** 保存bot的信息 */
+            await this.me(id)
+            /** 延迟下 */
+            await this.sleep(200)
+            /** 获取一些基本信息 */
+            await this.guilds(id)
         }
-
-        /** 保存到全局变量中 */
-        Bot[this.id] = bot
-        /** 创建 client */
-        Bot[this.id].client = createOpenAPI(Bot[this.id])
-        /** 创建 websocket 连接 */
-        Bot[this.id].ws = createWebsocket(Bot[this.id])
-        /** 建立ws链接 监听bot频道列表、频道资料、列表变化事件 */
-        Bot[this.id].ws.on('GUILDS', (data) => this.event(data))
-        /** 建立ws链接 监听频道成员变化事件 */
-        Bot[this.id].ws.on('GUILD_MEMBERS', (data) => this.event(data))
-        /** 建立ws链接 监听私信消息 */
-        Bot[this.id].ws.on('DIRECT_MESSAGE', (data) => this.event(data))
-        /** 建立ws链接 监听私域事件 */
-        Bot[this.id].ws.on('GUILD_MESSAGES', (data) => this.event(data))
-        /** 建立ws链接 监听公域事件 */
-        Bot[this.id].ws.on('PUBLIC_GUILD_MESSAGES', (data) => this.event(data))
-        /** 建立ws链接 监听表情动态事件 */
-        Bot[this.id].ws.on('GUILD_MESSAGE_REACTIONS', (data) => this.event(data))
-
-        /** 保存bot的信息 */
-        this.me()
-        /** 延迟下 */
-        this.sleep(100)
-        /** 获取一些基本信息 */
-        this.guilds()
     }
 
     /** @param ms 毫秒 */
@@ -56,21 +62,21 @@ export default new class guild {
     }
 
     /** 保存bot的信息 */
-    async me() {
-        const bot = await Api.me(this.id)
+    async me(id) {
+        const bot = await Api.me(id)
         /** 机器人名称 */
         this.name = bot.username
         /** 机器人的频道id */
         this.guild_id = bot.id
 
         /** 保存到全局变量中 */
-        Bot[this.id].id = bot.id
-        Bot[this.id].name = bot.username
-        Bot[this.id].avatar = bot.avatar
+        Bot[id].id = bot.id
+        Bot[id].name = bot.username
+        Bot[id].avatar = bot.avatar
     }
 
     /** 获取一些基本信息 */
-    async guilds() {
+    async guilds(id) {
         /** 加载机器人所在频道、将对应的子频道信息存入变量中用于后续调用 */
         /* 
         返回的字段、后续可往Bot.gl添加头像，锅巴可识别
@@ -81,17 +87,19 @@ export default new class guild {
     owner: false,
   },
         */
-        const meGuilds = await Api.meGuilds(this.id)
+        const meGuilds = await Api.meGuilds(id)
 
         for (let qg of meGuilds) {
             /** 保存一些初始配置 */
             const guildInfo = { ...qg, channels: {} }
             Bot.qg.guilds[qg.id] = guildInfo
-            Bot.qg.guilds[qg.id].id = this.id
+            Bot.qg.guilds[qg.id].id = id
 
+            /** 延迟下 */
+            await this.sleep(200)
             /** 判断机器人是否为超级管理员 */
             try {
-                const admin = await Api.guildMember(this.id, qg.id, user.id)
+                const admin = await Api.guildMember(id, qg.id, user.id)
                 Bot.qg.guilds[qg.id].admin = admin.roles.includes("2") ? true : false
             } catch (err) {
                 Bot.qg.guilds[qg.id].admin = false
@@ -99,11 +107,11 @@ export default new class guild {
 
             try {
                 /** 添加子频道列表到Bot.gl中，用于主动发送消息 */
-                const channelList = await Api.channels(this.id, qg.id)
+                const channelList = await Api.channels(id, qg.id)
                 for (const i of channelList) {
                     const guild_name = Bot.qg.guilds[i.guild_id]?.name || ""
                     Bot.gl.set(`qg_${i.guild_id}-${i.id}`, {
-                        id: this.id,
+                        id: id,
                         group_id: `qg_${i.guild_id}-${i.id}`,
                         group_name: guild_name ? `${guild_name}-${i.name}` : "未知",
                         guild_id: i.guild_id,
@@ -118,25 +126,25 @@ export default new class guild {
                     guildInfo.channels[subChannel.id] = subChannel.name
                 }
             } catch (err) {
-                logger.error(`QQ频道机器人 [${this.name}(${this.id}) 无权在 [${qg.name}] 获取子频道列表...请在机器人设置-权限设置-频道权限中，给予基础权限...`)
+                logger.error(`QQ频道机器人 [${this.name}(${id}) 无权在 [${qg.name}] 获取子频道列表...请在机器人设置-权限设置-频道权限中，给予基础权限...`)
             }
         }
 
         /** 米游社主动推送、椰奶状态pro */
         if (!Bot?.adapter) {
             Bot.adapter = [Bot.uin]
-            Bot.adapter.push(this.id)
+            Bot.adapter.push(id)
         } else {
-            Bot.adapter.push(this.id)
+            Bot.adapter.push(id)
             /** 去重防止断连后出现多个重复的id */
             Bot.adapter = Array.from(new Set(Bot.adapter.map(JSON.stringify))).map(JSON.parse)
         }
-        Bot[this.id] = {
-            ...Bot[this.id],
-            uin: this.id,
-            [this.id]: this.id,
+        Bot[id] = {
+            ...Bot[id],
+            uin: id,
+            [id]: id,
             nickname: this.name.replace("-测试中", ""),
-            avatar: Bot[this.id].avatar,
+            avatar: Bot[id].avatar,
             stat: { start_time: Date.now() / 1000 },
             apk: { display: Bot.qg.guild.name, version: Bot.qg.guild.ver },
             fl: new Map(),
@@ -145,7 +153,7 @@ export default new class guild {
             pickGroup: (groupId) => {
                 const [guild_id, channel_id] = groupId.replace("qg_", "").split('-')
                 const data = {
-                    id: this.id,
+                    id: id,
                     msg: {
                         guild_id: guild_id,
                         channel_id: channel_id
@@ -162,7 +170,7 @@ export default new class guild {
                 }
             }
         }
-        logger.mark(logger.green(`Bot：${this.name}(${this.id}) 连接成功~`))
+        logger.mark(logger.green(`Bot：${this.name}(${id}) 连接成功~`))
         /** 检测是否重启 */
         const restart = await redis.get("qg:restart")
         if (restart) await this.init(restart)
@@ -170,8 +178,8 @@ export default new class guild {
 
     /** 根据对应事件进行对应处理 */
     async event(data) {
-        data.id = this.id
-        const msg = data.msg
+        const { id } = data
+        console.log("🚀 ~ file: guild.js:182 ~ guild ~ event ~ id:", id)
         switch (data.eventType) {
             /** 私域 */
             case "MESSAGE_CREATE":
@@ -187,22 +195,22 @@ export default new class guild {
                 break
             /** 其他事件不需要给云崽、直接单独处理即可 */
             default:
-                await log_msg.event(data, this.id)
+                await log_msg.event(data)
                 break
         }
     }
 
     /** 发送主动消息 解除私信限制 */
     Sendprivate = async (data) => {
-        const { msg } = data
+        const { id, msg } = data
         const new_msg = {
             source_guild_id: msg.guild_id,
             recipient_id: msg.author.id
         }
-        const _data = await Api.createDirectMessage(this.id, new_msg)
+        const _data = await Api.createDirectMessage(id, new_msg)
         const hi = "QQGuild-plugin：你好~"
         logger.info(`${this.name} 发送私信消息：${hi}`)
-        await Api.postDirectMessage(this.id, _data.data.guild_id, { content: hi })
+        await Api.postDirectMessage(id, _data.data.guild_id, { content: hi })
     }
 
     /** 处理消息、转换格式 */

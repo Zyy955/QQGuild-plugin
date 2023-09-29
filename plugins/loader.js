@@ -45,7 +45,7 @@ Group.prototype.sendMsg = async function (content, source, anony = false) {
             group_name: group_name
         }
         const guild = (await import("../model/guild.js")).default
-        return await guild.reply(data, content, anony)
+        return await (new guild).reply(data, content, anony)
     }
     /** 带@ = PC微信HOOK */
     else if (info?.group_id && String(info?.group_id).includes("@")) {
