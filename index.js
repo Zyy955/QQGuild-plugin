@@ -174,13 +174,13 @@ let apps = {
         /** trss */
         if (cfg.hasIn("master")) {
             cfg.addVal("master", user_id)
-            cfg.addVal("masterQQ", `${e.self_id}:${user}`)
+            cfg.addVal("masterQQ", `${e.self_id}:${user_id}`)
         }
         /** 喵 */
         else {
             cfg.addVal("masterQQ", user_id)
         }
-        return [segment.at(user), "新主人好~(*/ω＼*)"]
+        return [segment.at(user_id), "新主人好~(*/ω＼*)"]
     },
 
     /** 添加Bot */
