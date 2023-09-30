@@ -11,7 +11,7 @@ export default new class message {
         let e = {}
         /** 获取消息体、appID */
         const { msg, id } = data
-               
+
         /** 获取时间戳 */
         const time = parseInt(Date.parse(msg.timestamp) / 1000)
         /** 获取用户的身份组信息 */
@@ -124,8 +124,9 @@ export default new class message {
                 makeForwardMsg: async (forwardMsg) => {
                     return await this.makeForwardMsg(forwardMsg, data)
                 },
-                getChatHistory: (seq, num) => {
-                    return ["message", "test"]
+                getChatHistory: async (msg_id, num) => {
+                    const source = await this.getChatHistory(id, msg.channel_id, msg_id)
+                    return [source]
                 }
             }
         } else {
@@ -137,8 +138,9 @@ export default new class message {
                         return member
                     }
                 },
-                getChatHistory: (seq, num) => {
-                    return ["message", "test"]
+                getChatHistory: async (msg_id, num) => {
+                    const source = await this.getChatHistory(id, msg.channel_id, msg_id)
+                    return [source]
                 },
                 recallMsg: (msg_id) => {
                     logger.info(`${Bot[id].name} 撤回消息：${msg_id}`)
@@ -306,6 +308,59 @@ export default new class message {
         message.msg = Array.from(new Set(new_msg.map(JSON.stringify))).map(JSON.parse)
         message.data = { type: "test", text: "forward", app: "com.tencent.multimsg", meta: { detail: { news: [{ text: "1" }] }, resid: "", uniseq: "", summary: "" } }
         return message
+    }
+
+    /** 获取聊天记录 */
+    async getChatHistory(appID, channel, msg_id) {
+        const source = await Api.message(appID, channel, msg_id)
+        const { id, content, author, guild_id, channel_id, timestamp, member } = source.message
+        const time = (new Date(timestamp)).getTime() / 1000
+
+        /** 获取用户的身份组信息 */
+        const roles = member.roles
+        /** 群主 */
+        const is_owner = roles && roles.includes("4") ? true : false
+        /** 超管 */
+        const is_admin = roles && roles.includes("2") ? true : false
+        /** 当前成员身份 */
+        const role = is_owner ? "owner" : (is_admin ? "admin" : "member")
+
+        return {
+            post_type: "message",
+            message_id: id,
+            user_id: "qg_" + author.id,
+            time: time,
+            seq: id,
+            rand: 505133029,
+            font: "宋体",
+            message: [
+                {
+                    type: "text",
+                    text: content,
+                },
+            ],
+            raw_message: content,
+            message_type: "group",
+            sender: {
+                user_id: "qg_" + author.id,
+                nickname: author.username,
+                sub_id: undefined,
+                card: "",
+                sex: "unknown",
+                age: 0,
+                area: "",
+                level: 1,
+                role: role,
+                title: "",
+            },
+            group_id: "qg_" + guild_id + channel_id,
+            group_name: "",
+            block: false,
+            sub_type: "normal",
+            anonymous: null,
+            atme: false,
+            atall: false,
+        }
     }
 
     /** 处理日志 */
