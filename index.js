@@ -74,9 +74,8 @@ export class QQGuildBot extends plugin {
                     config[i].appID,
                     config[i].token
                 ]
-                msg.push(`${cfg.join(':')}`)
-            }
-            /** 加一个名称方便区别~ */
+                msg.push(`${Bot[i].name}：${cfg.join(':')}`)
+            }            
             return e.reply(`共${msg.length}个账号：\n${msg.join('\n')}`)
         } else
             return e.reply("请私聊查看")
