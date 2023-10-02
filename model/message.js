@@ -218,7 +218,7 @@ export default new class message {
                 if (i.startsWith("<@")) {
                     let user_id = i.slice(3, -1)
                     const name = at_name(user_id)
-                    if (id === user_id) {
+                    if (Bot[id].id === user_id) {
                         user_id = Bot.uin
                         atBot = true
                     } else {
