@@ -28,7 +28,11 @@ export default class Yaml_ {
 
   /** 检查指定值是否存在 */
   value(key, value) {
-    return this.get(key)?.[value] ? true : false
+    const res = this.get(key)
+    if (Array.isArray(res)) {
+      return res.includes(value) ? true : false
+    }
+    return res[value] ? true : false
   }
 
   /** 获取指定键的值 */
@@ -57,7 +61,7 @@ export default class Yaml_ {
     else if (value && typeof value === "object") {
       value = { ...value, val, }
     } else {
-      value = val
+      value = [val]
     }
 
     this.set(key, value)
@@ -72,9 +76,22 @@ export default class Yaml_ {
   /* 删除指定键的值 */
   delVal(key, val) {
     const value = this.get(key)
-    delete value[val]
-    this.set(key, value)
+    if (Array.isArray(value)) {
+      const index = value.indexOf(val)
+      if (index !== -1) {
+        value.splice(index, 1)
+        this.set(key, value)
+      } else {
+        logger.error(`值 ${val} 不存在于数组中`)
+      }
+    } else if (typeof value === "object" && value !== null) {
+      delete value[val]
+      this.set(key, value)
+    } else {
+      logger.error(`无法从非对象或数组中删除键/值`)
+    }
   }
+
 
   /** 更新Ymal */
   save() {
