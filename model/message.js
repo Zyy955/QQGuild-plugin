@@ -3,10 +3,6 @@ import Api from "./api.js"
 export default new class message {
     /** 消息转换为Yunzai格式 */
     async msg(data, type = "") {
-        /** 前缀处理 */
-        if (data.msg?.content && Bot.qg.cfg.prefix) {
-            data.msg.content = data.msg.content.replace(/^\//, "#")
-        }
         /** 初始化e */
         let e = {}
         /** 获取消息体、appID */
@@ -214,7 +210,7 @@ export default new class message {
                 }
             }
 
-            for (const i of content) {
+            for (let i of content) {
                 if (i.startsWith("<@")) {
                     let user_id = i.slice(3, -1)
                     const name = at_name(user_id)
@@ -231,6 +227,10 @@ export default new class message {
                     raw_message.push(`{emoji:${faceValue}}`)
                     message.push({ type: "face", text: faceValue })
                 } else {
+                    /** 前缀处理 */
+                    if (i && Bot.qg.cfg.prefix) {
+                        i = i.trim().replace(/^\//, "#")
+                    }
                     raw_message.push(i)
                     message.push({ type: "text", text: i })
                 }
