@@ -1,97 +1,7 @@
-import fs from "fs"
 import lodash from "lodash"
-import { Group } from "icqq/lib/group.js"
+import util from "node:util"
 import cfg from "../../../lib/config/config.js"
-import common from "../../../lib/common/common.js"
-import PluginsLoader from "../../../lib/plugins/loader.js"
-
-const old = {
-    reply: PluginsLoader.reply,
-    dealMsg: PluginsLoader.dealMsg,
-    checkBlack: PluginsLoader.checkBlack,
-    sendMsg: Group.prototype.sendMsg,
-    getGroupMemberInfo: Bot.getGroupMemberInfo
-}
-
-/** 椰奶椰奶！ */
-if (fs.existsSync(process.cwd() + "/plugins/yenai-plugin")) {
-    const yenai_plugin = (await import("./yenai-plugin.js")).default
-    await yenai_plugin.yenai()
-}
-
-
-// const originalAs = Group.as
-// Group.as = function (gid, strict = false) {
-//     /** 延迟下... */
-//     setTimeout(() => { }, 8000)
-//     const result = originalAs.call(Group, gid, strict)
-//     return result
-// }
-
-/** 劫持修改sendMsg方法 */
-Group.prototype.sendMsg = async function (content, source, anony = false) {
-    const info = this._info
-    /** 判断是否为频道 */
-    if (info?.guild_id && info?.channel_id) {
-        const { id, group_id, guild_id, channel_id, group_name } = info
-        const data = {
-            id: id,
-            msg: {
-                group_id: group_id,
-                guild_id: guild_id,
-                channel_id: channel_id
-            },
-            eventType: "MESSAGE_CREATE",
-            group_name: group_name
-        }
-        const guild = (await import("../model/guild.js")).default
-        return await (new guild).reply(data, content, anony)
-    }
-    /** 带@ = PC微信HOOK */
-    else if (info?.group_id && String(info?.group_id).includes("@")) {
-        const data = {
-            detail_type: "group",
-            group_id: info.group_id,
-        }
-        const Yunzai = (await import("../../WeChat-plugin/model/Yunzai.js")).Yunzai
-        return await Yunzai.reply(content, data)
-    }
-    /** web等待完成... */
-    else {
-        /** 调用原始的 sendMsg 方法 */
-        return old.sendMsg.call(this, content, source, anony)
-    }
-}
-
-/** 劫持修改getGroupMemberInfo方法 */
-Bot.getGroupMemberInfo = async function (group_id, id) {
-    if (String(group_id).includes("qg_", "@")) {
-        const scene = String(group_id).includes("qg_") ? "QQGuild-Bot" : "WeChat-Bot"
-        return {
-            group_id: group_id,
-            user_id: id,
-            nickname: scene,
-            card: "",
-            sex: "female",
-            age: 6,
-            join_time: "",
-            last_sent_time: "",
-            level: 1,
-            role: "member",
-            title: "",
-            title_expire_time: "",
-            shutup_time: 0,
-            update_time: "",
-            area: "南极洲",
-            rank: "潜水",
-        }
-    } else {
-        return old.getGroupMemberInfo.call(this, group_id, id)
-    }
-}
-
-
-
+import Runtime from '../../../lib/plugins/runtime.js'
 
 let _loader = {
     /**
@@ -209,468 +119,132 @@ let _loader = {
                 }
             }
         }
-    },
-    /** 处理回复,捕获发送失败异常 */
-    reply(e) {
-        if (e.reply) {
-            e.replyNew = e.reply
-
-            /**
-             * @param msg 发送的消息
-             * @param quote 是否引用回复
-             * @param data.recallMsg 群聊是否撤回消息，0-120秒，0不撤回
-             * @param data.at 是否at用户
-             */
-            e.reply = async (msg = '', quote = false, data = {}) => {
-                if (!msg) return false
-
-                /** 禁言中 */
-                if (e.isGroup && e?.group?.mute_left > 0) return false
-
-                let { recallMsg = 0, at = '' } = data
-
-                if (at && e.isGroup) {
-                    let text = ''
-                    if (e?.sender?.card) {
-                        text = lodash.truncate(e.sender.card, { length: 10 })
-                    }
-                    if (at === true) {
-                        at = Number(e.user_id) || String(e.user_id)
-                    } else if (!isNaN(at)) {
-                        if (e.isGuild) {
-                            text = e.sender?.nickname
-                        } else {
-                            let info = e.group.pickMember(at).info
-                            text = info?.card ?? info?.nickname
-                        }
-                        text = lodash.truncate(text, { length: 10 })
-                    }
-
-                    if (Array.isArray(msg)) {
-                        msg = [segment.at(at, text), ...msg]
-                    } else {
-                        msg = [segment.at(at, text), msg]
-                    }
-                }
-
-                let msgRes
-                try {
-                    msgRes = await e.replyNew(msg, quote)
-                } catch (err) {
-                    if (typeof msg != 'string') {
-                        if (msg.type == 'image' && Buffer.isBuffer(msg?.file)) msg.file = {}
-                        msg = lodash.truncate(JSON.stringify(msg), { length: 300 })
-                    }
-                    logger.error(`发送消息错误:${msg}`)
-                    logger.error(err)
-                }
-
-                // 频道一下是不是频道
-                if (!e.isGuild && recallMsg > 0 && msgRes?.message_id) {
-                    if (e.isGroup) {
-                        setTimeout(() => e.group.recallMsg(msgRes.message_id), recallMsg * 1000)
-                    } else if (e.friend) {
-                        setTimeout(() => e.friend.recallMsg(msgRes.message_id), recallMsg * 1000)
-                    }
-                }
-
-                this.count(e, msg)
-                return msgRes
-            }
-        } else {
-            e.reply = async (msg = '', quote = false, data = {}) => {
-                if (!msg) return false
-                this.count(e, msg)
-                if (e.group_id) {
-                    return await e.group.sendMsg(msg).catch((err) => {
-                        logger.warn(err)
-                    })
-                } else {
-                    let friend = e.bot.fl.get(e.user_id)
-                    if (!friend) return
-                    return await e.bot.pickUser(e.user_id).sendMsg(msg).catch((err) => {
-                        logger.warn(err)
-                    })
-                }
-            }
-        }
-
-    },
-    /** 判断黑白名单 */
-    checkBlack(e) {
-        let other = cfg.getOther()
-        let notice = cfg.getNotice()
-
-        if (e.test) return true
-
-        /** 黑名单qq */
-        if (other.blackQQ && other.blackQQ.includes(Number(e.user_id) || String(e.user_id))) {
-            return false
-        }
-
-        if (e.group_id) {
-            /** 白名单群 */
-            if (Array.isArray(other.whiteGroup) && other.whiteGroup.length > 0) {
-                return other.whiteGroup.includes(Number(e.group_id) || String(e.group_id))
-            }
-            /** 黑名单群 */
-            if (Array.isArray(other.blackGroup) && other.blackGroup.length > 0) {
-                return !other.blackGroup.includes(Number(e.group_id) || String(e.group_id))
-            }
-        }
-
-        return true
-    },
-    /** 喵云崽 处理消息，加入自定义字段 */
-    Yz_dealMsg(e) {
-        if (e.message) {
-            for (let val of e.message) {
-                switch (val.type) {
-                    case 'text':
-                        /** 中文#转为英文 */
-                        val.text = val.text.replace(/＃|井/g, '#').trim()
-                        if (/星铁|崩坏星穹铁道|铁道|星轨|星穹铁道|\/common\//.test(val.text)) {
-                            e.isSr = true
-                        }
-                        if (e.msg) {
-                            e.msg += val.text
-                        } else {
-                            e.msg = val.text.trim()
-                        }
-                        break
-                    case 'image':
-                        if (!e.img) {
-                            e.img = []
-                        }
-                        e.img.push(val.url)
-                        break
-                    case 'at':
-                        if (val.qq == Bot.uin || val.qq === e.uin) {
-                            e.atBot = true
-                        } else {
-                            /** 多个at 以最后的为准 */
-                            e.at = val.qq
-                        }
-                        break
-                    case 'file':
-                        e.file = { name: val.name, fid: val.fid }
-                        break
-                }
-            }
-        }
-
-        e.logText = ''
-
-        if (e.message_type == 'private' || e.notice_type == 'friend') {
-            e.isPrivate = true
-
-            if (e.sender) {
-                e.sender.card = e.sender.nickname
-            } else {
-                e.sender = {
-                    card: e.friend?.nickname,
-                    nickname: e.friend?.nickname
-                }
-            }
-
-            e.logText = `[私聊][${e.sender.nickname}(${e.user_id})]`
-        }
-
-        if (e.message_type == 'group' || e.notice_type == 'group') {
-            e.isGroup = true
-            if (e.sender) {
-                e.sender.card = e.sender.card || e.sender.nickname
-            } else if (e.member) {
-                e.sender = {
-                    card: e.member.card || e.member.nickname
-                }
-            } else if (e.nickname) {
-                e.sender = {
-                    card: e.nickname,
-                    nickname: e.nickname
-                }
-            } else {
-                e.sender = {
-                    card: '',
-                    nickname: ''
-                }
-            }
-
-            if (!e.group_name) e.group_name = e.group?.name
-
-            e.logText = `[${e.group_name}(${e.sender.card})]`
-        }
-
-        if (e.user_id && cfg.masterQQ.includes(Number(e.user_id) || String(e.user_id))) {
-            e.isMaster = true
-        }
-
-        /** 只关注主动at msg处理 */
-        if (e.msg && e.isGroup) {
-            let groupCfg = cfg.getGroup(e.group_id)
-            let alias = groupCfg.botAlias
-            if (!Array.isArray(alias)) {
-                alias = [alias]
-            }
-            for (let name of alias) {
-                if (e.msg.startsWith(name)) {
-                    e.msg = lodash.trimStart(e.msg, name).trim()
-                    e.hasAlias = true
-                    break
-                }
-            }
-        }
-    },
-    /** 喵云崽 处理回复,捕获发送失败异常 */
-    Yz_reply(e) {
-        if (e.reply) {
-            e.replyNew = e.reply
-
-            /**
-             * @param msg 发送的消息
-             * @param quote 是否引用回复
-             * @param data.recallMsg 群聊是否撤回消息，0-120秒，0不撤回
-             * @param data.at 是否at用户
-             */
-            e.reply = async (msg = '', quote = false, data = {}) => {
-                if (!msg) return false
-
-                /** 禁言中 */
-                if (e.isGroup && e?.group?.mute_left > 0) return false
-
-                let { recallMsg = 0, at = '' } = data
-
-                if (at && e.isGroup) {
-                    let text = ''
-                    if (e?.sender?.card) {
-                        text = lodash.truncate(e.sender.card, { length: 10 })
-                    }
-                    if (at === true) {
-                        at = Number(e.user_id) || String(e.user_id)
-                    } else if (!isNaN(at)) {
-                        let info = e.group.pickMember(at).info
-                        text = info?.card ?? info?.nickname
-                        text = lodash.truncate(text, { length: 10 })
-                    }
-
-                    if (Array.isArray(msg)) {
-                        msg = [segment.at(at, text), ...msg]
-                    } else {
-                        msg = [segment.at(at, text), msg]
-                    }
-                }
-
-                let msgRes
-                try {
-                    msgRes = await e.replyNew(this.checkStr(msg), quote)
-                } catch (err) {
-                    if (typeof msg != 'string') {
-                        if (msg.type == 'image' && Buffer.isBuffer(msg?.file)) msg.file = {}
-                        msg = lodash.truncate(JSON.stringify(msg), { length: 300 })
-                    }
-                    logger.error(`发送消息错误:${msg}`)
-                    logger.error(err)
-                }
-
-                if (recallMsg > 0 && msgRes?.message_id) {
-                    if (e.isGroup) {
-                        setTimeout(() => e.group.recallMsg(msgRes.message_id), recallMsg * 1000)
-                    } else if (e.friend) {
-                        setTimeout(() => e.friend.recallMsg(msgRes.message_id), recallMsg * 1000)
-                    }
-                }
-
-                this.count(e, msg)
-                return msgRes
-            }
-        } else {
-            e.reply = async (msg = '', quote = false, data = {}) => {
-                if (!msg) return false
-                this.count(e, msg)
-                if (e.group_id) {
-                    return await e.group.sendMsg(msg).catch((err) => {
-                        logger.warn(err)
-                    })
-                } else {
-                    let friend = Bot.fl.get(e.user_id)
-                    if (!friend) return
-                    return await Bot.pickUser(e.user_id).sendMsg(msg).catch((err) => {
-                        logger.warn(err)
-                    })
-                }
-            }
-        }
-    },
-    /** 喵云崽 判断黑白名单 */
-    Yz_checkBlack(e) {
-        let other = cfg.getOther()
-
-        if (e.test) return true
-
-        /** 黑名单qq */
-        if (other.blackQQ && other.blackQQ.includes(Number(e.user_id) || String(e.user_id))) {
-            return false
-        }
-
-        if (e.group_id) {
-            /** 白名单群 */
-            if (Array.isArray(other.whiteGroup) && other.whiteGroup.length > 0) {
-                return other.whiteGroup.includes(Number(e.group_id) || String(e.user_id))
-            }
-            /** 黑名单群 */
-            if (Array.isArray(other.blackGroup) && other.blackGroup.length > 0) {
-                return !other.blackGroup.includes(Number(e.group_id) || String(e.user_id))
-            }
-        }
-
-        return true
-    },
-    /** 新转发消息 */
-    async makeForwardMsg(e, msg = [], dec = '', msgsscr = false) {
-
-        if (!Array.isArray(msg)) msg = [msg]
-
-        let name = msgsscr ? e.sender.card || e.user_id : Bot.nickname
-        let id = msgsscr ? e.user_id : Bot.uin
-
-        if (e.isGroup) {
-            try {
-                let info = await e.bot.getGroupMemberInfo(e.group_id, id)
-                name = info.card || info.nickname
-            } catch (err) {
-                logger.error(err.message)
-            }
-        }
-
-        let userInfo = {
-            user_id: id,
-            nickname: name
-        }
-
-        let forwardMsg = []
-        for (const message of msg) {
-            if (!message) continue
-            forwardMsg.push({
-                ...userInfo,
-                message: message
-            })
-        }
-
-
-        /** 制作转发内容 */
-        if (e?.group?.makeForwardMsg) {
-            forwardMsg = await e.group.makeForwardMsg(forwardMsg)
-        } else if (e?.friend?.makeForwardMsg) {
-            forwardMsg = await e.friend.makeForwardMsg(forwardMsg)
-        } else {
-            return msg.join('\n')
-        }
-
-        if (dec) {
-            /** 处理描述 */
-            if (typeof (forwardMsg.data) === 'object') {
-                let detail = forwardMsg.data?.meta?.detail
-                if (detail) {
-                    detail.news = [{ text: dec }]
-                }
-            } else {
-                forwardMsg.data = forwardMsg.data
-                    .replace(/\n/g, '')
-                    .replace(/<title color="#777777" size="26">(.+?)<\/title>/g, '___')
-                    .replace(/___+/, `<title color="#777777" size="26">${dec}</title>`)
-            }
-        }
-
-        return forwardMsg
     }
 }
 
+export default new class QQGuildLoader {
+    async deal(e) {
+        Object.defineProperty(e, 'bot', {
+            value: Bot
+        })
+        /** 检查频道消息 */
+        if (this.checkGuildMsg(e)) return
+        /** 检查黑白名单 */
+        if (!this.checkBlack(e)) return
+        /** 冷却 */
+        if (!this.checkLimit(e)) return
+        /** 处理消息 */
+        _loader.dealMsg(e)
+        /** 处理回复 */
+        this.reply(e)
+        /** 过滤事件 */
+        let priority = []
+        /** 注册runtime */
+        await Runtime.init(e)
 
-/** 劫持修改主体一些基础处理方法 */
-if (Bot.qg.YZ.name === "Miao-Yunzai") {
-    /** 劫持回复方法 */
-    PluginsLoader.reply = function (e) {
-        if (e?.adapter) return _loader.reply.call(this, e)
-        return old.reply.call(this, e)
-    }
-    /** 劫持处理消息 */
-    PluginsLoader.dealMsg = function (e) {
-        if (e?.adapter) return _loader.dealMsg.call(this, e)
-        return old.dealMsg.call(this, e)
-    }
-    /** 劫持黑白名单 */
-    PluginsLoader.checkBlack = function (e) {
-        if (e?.adapter) return _loader.checkBlack.call(this, e)
-        return old.checkBlack.call(this, e)
-    }
+        this.priority.forEach(v => {
+            let p = new v.class(e)
+            p.e = e
+            /** 判断是否启用功能 */
+            if (!this.checkDisable(e, p)) return
+            /** 过滤事件 */
+            if (!this.filtEvent(e, p)) return
+            priority.push(p)
+        })
 
-    /** 本体转发 */
-    common.makeForwardMsg = async function (e, msg = [], dec = '', msgsscr = false) {
-        return await _loader.makeForwardMsg(e, msg, dec, msgsscr)
-    }
-}
-/** 对喵云崽的转发进行劫持修改，兼容最新的icqq转发 */
-else {
-    /** 劫持回复方法 */
-    PluginsLoader.reply = function (e) {
-        if (e?.adapter) return _loader.Yz_reply.call(this, e)
-        return old.reply.call(this, e)
-    }
-    /** 劫持处理消息 */
-    PluginsLoader.dealMsg = function (e) {
-        if (e?.adapter) return _loader.Yz_dealMsg.call(this, e)
-        return old.dealMsg.call(this, e)
-    }
-    /** 劫持黑白名单 */
-    PluginsLoader.checkBlack = function (e) {
-        if (e?.adapter) return _loader.Yz_checkBlack.call(this, e)
-        return old.checkBlack.call(this, e)
-    }
+        for (let plugin of priority) {
+            /** 上下文hook */
+            if (plugin.getContext) {
+                let context = plugin.getContext()
+                if (!lodash.isEmpty(context)) {
+                    for (let fnc in context) {
+                        plugin[fnc](context[fnc])
+                    }
+                    return
+                }
+            }
 
-    /** 本体转发 */
-    common.makeForwardMsg = async function (e, msg = [], dec = '', msgsscr = false) {
-        return await _loader.makeForwardMsg(e, msg, dec, msgsscr)
-    }
-    /** 日志 */
-    const sendLog = (await import("../../other/sendLog.js")).sendLog
-    sendLog.prototype.makeForwardMsg = async function (title, msg) {
-        return await _loader.makeForwardMsg(this.e, [title, msg], title, false)
-    }
-
-    /** 更新日志 */
-    const update = (await import("../../other/update.js")).update
-    update.prototype.makeForwardMsg = async function (title, msg = [], dec = '', msgsscr = false) {
-        return await _loader.makeForwardMsg(this.e, [title, msg], title, msgsscr)
-    }
-
-    /** 表情列表 */
-    const add = (await import("../../system/add.js")).add
-    add.prototype.makeForwardMsg = async function (qq, title, msg, end = '') {
-        return await _loader.makeForwardMsg(this.e, [title, msg], title, false)
-    }
-
-    /** 角色别名 */
-    const abbrSet = (await import("../../genshin/apps/abbrSet.js")).abbrSet
-    abbrSet.prototype.abbrList = async function () {
-        let gsCfg = (await import("../../genshin/model/gsCfg.js")).default
-        let role = gsCfg.getRole(this.e.msg, '#|别名|昵称')
-
-        if (!role) return false
-
-        let name = gsCfg.getdefSet('role', 'name')[role.roleId]
-        let nameUser = gsCfg.getConfig('role', 'name')[role.name] ?? []
-
-        let list = lodash.uniq([...name, ...nameUser])
-
-        let msg = []
-        for (let i in list) {
-            let num = Number(i) + 1
-            msg.push(`${num}.${list[i]}\n`)
+            /** 群上下文hook */
+            if (plugin.getContextGroup) {
+                let context = plugin.getContextGroup()
+                if (!lodash.isEmpty(context)) {
+                    for (let fnc in context) {
+                        plugin[fnc](context[fnc])
+                    }
+                    return
+                }
+            }
         }
 
-        let title = `${role.name}别名，${list.length}个`
-        msg = await _loader.makeForwardMsg(this.e, msg, title, false)
+        /** 是否只关注主动at */
+        if (!this.onlyReplyAt(e)) return
 
-        await this.e.reply(msg)
+        // 判断是否是星铁命令，若是星铁命令则标准化处理
+        // e.isSr = true，且命令标准化为 #星铁 开头
+        if (this.srReg.test(e.msg)) {
+            e.isSr = true
+            e.msg = e.msg.replace(this.srReg, '#星铁')
+        }
+
+        /** accept */
+        for (let plugin of priority) {
+            /** accept hook */
+            if (plugin.accept) {
+                let res = plugin.accept(e)
+
+                if (util.types.isPromise(res)) res = await res
+
+                if (res === 'return') return
+
+                if (res) break
+            }
+        }
+
+        /* eslint-disable no-labels */
+        a:
+        for (let plugin of priority) {
+            /** 正则匹配 */
+            if (plugin.rule) {
+                for (let v of plugin.rule) {
+                    /** 判断事件 */
+                    if (v.event && !this.filtEvent(e, v)) continue
+
+                    const regExp = new RegExp(v.reg)
+                    /**  匹配消息或者小程序 */
+                    const messageOrApplet = e.msg || e.message?.[0]?.data
+                    if (regExp.test(messageOrApplet)) {
+                        e.logFnc = `[${plugin.name}][${v.fnc}]`
+
+                        if (v.log !== false) {
+                            logger.mark(`${e.logFnc}${e.logText} ${lodash.truncate(e.msg, { length: 80 })}`)
+                        }
+
+                        /** 判断权限 */
+                        if (!this.filtPermission(e, v)) break a
+
+                        try {
+                            let res = plugin[v.fnc] && plugin[v.fnc](e)
+
+                            let start = Date.now()
+
+                            if (util.types.isPromise(res)) res = await res
+
+                            if (res !== false) {
+                                /** 设置冷却cd */
+                                this.setLimit(e)
+                                if (v.log !== false) {
+                                    logger.mark(`${e.logFnc} ${lodash.truncate(e.msg, { length: 80 })} 处理完成 ${Date.now() - start}ms`)
+                                }
+                                break a
+                            }
+                        } catch (error) {
+                            logger.error(`${e.logFnc}`)
+                            logger.error(error.stack)
+                            break a
+                        }
+                    }
+                }
+            }
+        }
     }
 }

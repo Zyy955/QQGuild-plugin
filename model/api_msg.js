@@ -130,7 +130,7 @@ export default new class api_msg {
         const whiteRegex = new RegExp(`\\b(${urls.map(url => url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'g')
         /** 将url转二维码 */
         if (!msg.match(whiteRegex)) {
-          const urlRegex = /(https?:\/\/)?(([0-9a-z.-]+\.[a-z]+)|(([0-9]{1,3}\.){3}[0-9]{1,3}))(:[0-9]+)?(\/[0-9a-z%/.\-_#]*)?(\?[0-9a-z=&%_\-.]*)?(\#[0-9a-z=&%_\-]*)?/ig
+            const urlRegex = /(https?:\/\/)?(([0-9a-z.-]+\.[a-z]+)|(([0-9]{1,3}\.){3}[0-9]{1,3}))(:[0-9]+)?(\/[0-9a-z%/.\-_#]*)?(\?[0-9a-z=&%_\-.]*)?(\#[0-9a-z=&%_\-]*)?/ig
             if (urlRegex.test(msg)) {
                 /** 二次检测 防止奇怪的url */
                 const url_a = (s, protocols = ["http", "https"]) => {
@@ -229,13 +229,32 @@ export default new class api_msg {
         let logs = ""
         let SendMsg = {}
         const { msg } = data
-        const { content, type, image, log } = Api_msg
+        let { content, type, image, log } = Api_msg
         switch (type) {
             case "file_image":
                 logs += log
                 SendMsg = new FormData()
                 if (msg?.id) SendMsg.set("msg_id", msg.id)
-                SendMsg.set("file_image", new Blob([image]))
+                /** 检测大小 */
+                let sizeInMB = image.byteLength / (1024 * 1024)
+                /** 动态导入 */
+                const sharp = (await import("sharp")).default
+                if (sharp && sizeInMB > 2.5) {
+                    sharp(image)
+                        /** 宽度像素 */
+                        .resize({ width: Bot.qg.cfg.width })
+                        /** 质量 */
+                        .jpeg({ quality: Bot.qg.cfg.quality })
+                        .toBuffer()
+                        .then(data => {
+                            SendMsg.set("file_image", new Blob([data]))
+                        })
+                        .catch(err => logger.error(err))
+                } else {
+                    if (!sharp) logger.error("没有安装 sharp 依赖，请运行 pnpm install -P 或 pnpm i 进行安装依赖~")
+                    /** 如果图片大小不超过2.5MB，那么直接存入SendMsg */
+                    SendMsg.set("file_image", new Blob([image]))
+                }
                 break
             case "url":
                 logs += Api_msg.log

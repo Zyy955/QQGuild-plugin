@@ -16,6 +16,16 @@ if (fs.existsSync("./plugins/QQGuild-plugin/config.yaml")) {
 /** 检查配置文件是否存在 */
 if (!fs.existsSync(_path + "/config.yaml")) {
     fs.copyFileSync(_path + "/defSet/config.yaml", _path + "/config.yaml")
+} else {
+    /** 兼容压缩图像 */
+    let cfg = fs.readFileSync(_path + "/config.yaml", "utf8")
+    if (!cfg.match(RegExp("width:"))) {
+        cfg = cfg + `\n# 压缩后图片宽度像素大小\nwidth: 1000`
+    }
+    if (!cfg.match(RegExp("quality:"))) {
+        cfg = cfg + `\n# 压缩后的图片质量\nquality: 100`
+    }
+    fs.writeFileSync(_path, old_cfg, "utf8")
 }
 
 /** 生成默认配置文件 */

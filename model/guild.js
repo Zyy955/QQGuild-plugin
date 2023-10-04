@@ -1,7 +1,8 @@
 import Api from "./api.js"
 import log_msg from "./log.js"
 import message from "./message.js"
-import PluginsLoader from "../../../lib/plugins/loader.js"
+import QQGuildLoader from "../plugins/loader.js"
+import pluginsLoader from "../../../lib/plugins/loader.js"
 import { createOpenAPI, createWebsocket } from "qq-guild-bot"
 
 logger.info("QQGuild-plugin初始化...")
@@ -169,19 +170,18 @@ export default class guild {
 
     /** 根据对应事件进行对应处理 */
     async event(data) {
-        const { id } = data
         switch (data.eventType) {
             /** 私域 */
             case "MESSAGE_CREATE":
-                PluginsLoader.deal(await message.msg(data))
+                QQGuildLoader.deal.call(pluginsLoader, await message.msg(data))
                 break
             /** 私信 */
             case "DIRECT_MESSAGE_CREATE":
-                PluginsLoader.deal(await message.msg(data, "私信"))
+                QQGuildLoader.deal.call(pluginsLoader, await message.msg(data, "私信"))
                 break
             /** 公域事件 仅接收@机器人消息 */
             case "AT_MESSAGE_CREATE":
-                PluginsLoader.deal(await message.msg(data))
+                QQGuildLoader.deal.call(pluginsLoader, await message.msg(data))
                 break
             /** 其他事件不需要给云崽、直接单独处理即可 */
             default:

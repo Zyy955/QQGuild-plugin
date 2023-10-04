@@ -37,13 +37,21 @@ curl -o "./apps.js" "https://gitee.com/Zyy955/Yunzai-Bot-plugin/raw/main/apps.js
 
 Gitee：
 ```
-git clone --depth=1 https://gitee.com/Zyy955/QQGuild-plugin ./plugins/QQGuild-plugin && pnpm install -P
+git clone --depth=1 https://gitee.com/Zyy955/QQGuild-plugin ./plugins/QQGuild-plugin
 ```
 
 Github：
 ```
-git clone --depth=1 https://github.com/Zyy955/QQGuild-plugin ./plugins/QQGuild-plugin && pnpm install -P
+git clone --depth=1 https://github.com/Zyy955/QQGuild-plugin ./plugins/QQGuild-plugin
 ```
+
+#### 安装依赖
+
+```
+pnpm config set sharp_binary_host "https://npmmirror.com/mirrors/sharp" && pnpm config set sharp_libvips_binary_host "https://npmmirror.com/mirrors/sharp-libvips" && pnpm install -P
+```
+
+
 
 ## 3.机器人指令配置
 

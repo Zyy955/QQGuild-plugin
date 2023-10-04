@@ -1,6 +1,6 @@
 {
   "name": "qqguild-plugin",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "author": "Zyy955",
   "github": "https://github.com/Zyy955/QQGuild-plugin",
   "gitee": "https://gitee.com/Zyy955/QQGuild-plugin",
@@ -8,6 +8,7 @@
   "dependencies": {
     "qq-guild-bot": "^2.9.5",
     "qrcode": "^1.5.3",
-    "axios": "^1.5.0"
+    "axios": "^1.5.0",
+    "sharp": "^0.32.6"
   }
 }

@@ -1,6 +1,5 @@
 import "./model/config.js"
-import "./plugins/loader.js"
-import "./plugins/puppeteer.js"
+import "./plugins/icqq.js"
 import guild from "./model/guild.js"
 import crypto from "crypto"
 import { execSync } from "child_process"
