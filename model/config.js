@@ -25,7 +25,7 @@ if (!fs.existsSync(_path + "/config.yaml")) {
     if (!cfg.match(RegExp("quality:"))) {
         cfg = cfg + `\n# 压缩后的图片质量\nquality: 100`
     }
-    fs.writeFileSync(_path, cfg, "utf8")
+    fs.writeFileSync(_path + "/config.yaml", cfg, "utf8")
 }
 
 /** 生成默认配置文件 */
