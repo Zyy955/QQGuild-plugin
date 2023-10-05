@@ -25,6 +25,10 @@ if (!fs.existsSync(_path + "/config.yaml")) {
     if (!cfg.match(RegExp("quality:"))) {
         cfg = cfg + `\n# 压缩后的图片质量\nquality: 100`
     }
+    
+    if (!cfg.match(RegExp("recallQR:"))) {
+        cfg = cfg + `\n# 撤回url转换成二维码的时间(秒) 0表示不撤回\nrecallQR: 20`
+    }
     fs.writeFileSync(_path + "/config.yaml", cfg, "utf8")
 }
 

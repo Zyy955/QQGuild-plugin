@@ -99,14 +99,10 @@ export default new class api_msg {
                 case "forward":
                     /** 转发消息 */
                     if (Bot.qg.cfg.forwar) {
-                        /** 延迟下... */
-                        await common.sleep(200)
                         /** 构建请求参数、打印日志 */
                         const SendMsg = await this.Construct_data(data, { content: await this.urlHandler(data, i.text), ...image || null }, false)
                         await this.SendMsg(data, SendMsg)
                     } else {
-                        /** 随机延迟 */
-                        await common.sleep(300)
                         content.push(await this.urlHandler(data, `${i.text}\n\n`))
                     }
                     break
@@ -155,6 +151,9 @@ export default new class api_msg {
                         const base64 = "base64://" + buffer.toString("base64")
                         const Uint8Array = await this.picture_reply(base64, url)
                         const Api_msg = { content: "", type: "file_image", image: Uint8Array, log: "[图片：base64://...]" }
+                        /** 转换的二维码连接是否撤回 */
+                        const qr = Number(Bot.qg.cfg.recallQR) || 0
+                        data.qr = qr
                         /** 构建请求参数、打印日志 */
                         const SendMsg = await this.Construct_data(data, Api_msg, false)
                         await this.SendMsg(data, SendMsg)
@@ -236,7 +235,7 @@ export default new class api_msg {
                 SendMsg = new FormData()
                 if (msg?.id) SendMsg.set("msg_id", msg.id)
                 /** 检测大小 */
-                let sizeInMB = image.byteLength / (1024 * 1024)
+                let sizeInMB = image?.byteLength / (1024 * 1024)
                 /** 动态导入 */
                 const sharp = (await import("sharp")).default
                 if (sharp && sizeInMB > 2.5) {
@@ -319,9 +318,9 @@ export default new class api_msg {
     async SendMsg(data, SendMsg) {
 
         /** 随机延迟 */
-        await common.sleep(lodash.random(300, 1000))
+        await common.sleep(lodash.random(100, 300))
 
-        const { id, msg } = data
+        const { id, msg, qr } = data
         const msg_id = msg.id
         const { guild_id, channel_id } = msg
 
@@ -347,6 +346,10 @@ export default new class api_msg {
                 ? res = await Api.postDirectMessage(id, guild_id, image)
                 : res = await Api.postMessage(id, channel_id, image)
         }
+
+        /** 连接转二维码撤回 */
+        if (res.id && qr && qr > 0) this.recallQR(id, res, qr)
+
         /** 返回消息id给撤回用？ */
         return {
             seq: res.seq_in_channel,
@@ -354,6 +357,13 @@ export default new class api_msg {
             time: parseInt(Date.parse(res.timestamp) / 1000),
             message_id: res.id
         }
+    }
+
+    /** 撤回消息 */
+    async recallQR(id, res, qr) {
+        setTimeout(async function () {
+            await Api.deleteMessage(id, res.channel_id, res.id, false)
+        }, qr * 1000)
     }
 
     /** 渲染图片 */
