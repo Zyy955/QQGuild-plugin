@@ -234,24 +234,28 @@ export default new class api_msg {
                 logs += log
                 SendMsg = new FormData()
                 if (msg?.id) SendMsg.set("msg_id", msg.id)
-                /** 检测大小 */
-                let sizeInMB = image?.byteLength / (1024 * 1024)
-                /** 动态导入 */
-                const sharp = (await import("sharp")).default
-                if (sharp && sizeInMB > 2.5) {
-                    sharp(image)
-                        /** 宽度像素 */
-                        .resize({ width: Bot.qg.cfg.width })
-                        /** 质量 */
-                        .jpeg({ quality: Bot.qg.cfg.quality })
-                        .toBuffer()
-                        .then(data => {
-                            SendMsg.set("file_image", new Blob([data]))
-                        })
-                        .catch(err => logger.error(err))
-                } else {
-                    if (!sharp) logger.error("没有安装 sharp 依赖，请运行 pnpm install -P 或 pnpm i 进行安装依赖~")
-                    /** 如果图片大小不超过2.5MB，那么直接存入SendMsg */
+                try {
+                    /** 检测大小 */
+                    let sizeInMB = image?.byteLength / (1024 * 1024)
+                    /** 动态导入 */
+                    const sharp = (await import("sharp")).default
+                    if (sharp && sizeInMB > 2.5) {
+                        await sharp(image)
+                            /** 宽度像素 */
+                            .resize({ width: Bot.qg.cfg.width })
+                            /** 质量 */
+                            .jpeg({ quality: Bot.qg.cfg.quality })
+                            .toBuffer()
+                            .then(data => {
+                                SendMsg.set("file_image", new Blob([data]))
+                            })
+                    } else {
+                        if (!sharp) logger.error("没有安装 sharp 依赖，请运行 pnpm install -P 或 pnpm i 进行安装依赖~")
+                        /** 如果图片大小不超过2.5MB，那么直接存入SendMsg */
+                        SendMsg.set("file_image", new Blob([image]))
+                    }
+                } catch (err) {
+                    /** 产生错误直接存入即可 */
                     SendMsg.set("file_image", new Blob([image]))
                 }
                 break
