@@ -148,8 +148,13 @@ export class QQGuildBot extends plugin {
 
 
     async qg_id(e) {
-        const msg = e?.group_id ? `\n当前群聊ID：${e.group_id}` : ""
-        return e.reply([segment.at(e.user_id), `\n您的个人ID：${e.user_id}${msg}`])
+        const msg = []
+        msg.push(`您的个人ID：${e.user_id}`)
+        e.guild_id ? msg.push(`当前频道ID：${e.guild_id}`) : ""
+        e.channel_id ? msg.push(`当前子频道ID：${e.channel_id}`) : ""
+        e.group_id ? msg.push(`当前群聊ID：${e.group_id}`) : ""
+        if (e.isMaster) msg.push("\n温馨提示：\n使用本体黑白名单请使用「群聊ID」\n使用插件黑白名单请按照配置文件说明进行添加~")
+        return e.reply(`\n${msg.join('\n')}`, true, { at: true })
     }
 
     SetAdmin() {

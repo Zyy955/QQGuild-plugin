@@ -1,4 +1,5 @@
 import fs from "fs"
+import chalk from "chalk"
 import { URL } from "url"
 import Api from "./api.js"
 import lodash from "lodash"
@@ -301,7 +302,7 @@ export default new class api_msg {
     /** 打印日志 */
     log(data, logs) {
         const { id, group_name } = data
-        const bot = `${Bot[id].name} 发送消息：`
+        const bot = chalk.hex("#868ECC")(`[${Bot[id].name}]`) + "发送消息："
         switch (data.eventType) {
             /** 私信 */
             case "DIRECT_MESSAGE_CREATE":

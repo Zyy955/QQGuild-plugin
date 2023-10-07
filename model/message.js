@@ -1,3 +1,4 @@
+import chalk from "chalk"
 import Api from "./api.js"
 
 export default new class message {
@@ -44,7 +45,7 @@ export default new class message {
             channel_id: msg.channel_id,
             channel_name: channel_name,
             group_id: group_id,
-            guild_id: msg.guild_id,
+            guild_id: `qg_${msg.guild_id}`,
             group_name: group_name,
             guild_name: guild_name,
             mentions: msg.mentions,
@@ -188,7 +189,12 @@ export default new class message {
             }
         }
         /** 打印日志 */
-        logger.info(this.log(e))
+        if (data.checkBlack) {
+            logger.mark(this.log(e))
+        } else {
+            Bot.qg.cfg.isLog ? logger.info(this.log(e)) : logger.debug(this.log(e))
+        }
+
         return e
     }
 
@@ -372,6 +378,6 @@ export default new class message {
         } else {
             group_name = e.guild_name + "私信"
         }
-        return `${name} 频道消息：[${group_name}，${e.sender?.card || e.sender?.nickname}] ${e.raw_message}`
+        return `${chalk.hex("#868ECC")(`[${name}]`)}频道消息：[${group_name}，${e.sender?.card || e.sender?.nickname}] ${e.raw_message}`
     }
 }

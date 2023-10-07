@@ -5,9 +5,6 @@ import QQGuildLoader from "../plugins/loader.js"
 import pluginsLoader from "../../../lib/plugins/loader.js"
 import { createOpenAPI, createWebsocket } from "qq-guild-bot"
 
-logger.info("QQGuild-plugin初始化...")
-logger.info("https://github.com/Zyy955/QQGuild-plugin")
-
 export default class guild {
     /** 创建连接 */
     async monitor(cfg) {
@@ -162,8 +159,8 @@ export default class guild {
                 }
             }
         }
-        logger.mark(logger.green(`Bot：${this.name}(${id}) 连接成功~`))
-        /** 检测是否重启 */
+        logger.mark(`${logger.green(`[QQ频道]${this.name}(${id})连接成功~`)}`)
+        /** 检测是否重启 */ 
         const restart = await redis.get("qg:restart")
         if (restart) if (JSON.parse(restart).appID === id) await this.init(restart)
     }
@@ -173,15 +170,15 @@ export default class guild {
         switch (data.eventType) {
             /** 私域 */
             case "MESSAGE_CREATE":
-                QQGuildLoader.deal.call(pluginsLoader, await message.msg(data))
+                await this.permissions(data)
                 break
             /** 私信 */
             case "DIRECT_MESSAGE_CREATE":
-                QQGuildLoader.deal.call(pluginsLoader, await message.msg(data, "私信"))
+                await this.permissions(data, "私信")
                 break
             /** 公域事件 仅接收@机器人消息 */
             case "AT_MESSAGE_CREATE":
-                QQGuildLoader.deal.call(pluginsLoader, await message.msg(data))
+                await this.permissions(data)
                 break
             /** 其他事件不需要给云崽、直接单独处理即可 */
             default:
@@ -190,17 +187,49 @@ export default class guild {
         }
     }
 
-    /** 发送主动消息 解除私信限制 */
-    Sendprivate = async (data) => {
-        const { id, msg } = data
-        const new_msg = {
-            source_guild_id: msg.guild_id,
-            recipient_id: msg.author.id
+    async permissions(data, type = "") {
+        const cfg = Bot.qg.cfg
+        const { guild_id, channel_id } = data.msg
+
+        /** 过频道黑白名单结果 */
+        const guild = this.checkBlack(cfg, `qg_${guild_id}`)
+        /** 过子频道黑白名单结果 别问为啥一起过...懒 */
+        const channel = this.channel_checkBlack(cfg, String(channel_id))
+
+        if (guild && channel) {
+            data.checkBlack = true
+            return await QQGuildLoader.deal.call(pluginsLoader, await message.msg(data, type))
+        } else {
+            data.checkBlack = false
+            return await message.msg(data, type)
         }
-        const _data = await Api.createDirectMessage(id, new_msg)
-        const hi = "QQGuild-plugin：你好~"
-        logger.info(`${this.name} 发送私信消息：${hi}`)
-        await Api.postDirectMessage(id, _data.data.guild_id, { content: hi })
+    }
+
+    /** 判断频道黑白名单 */
+    checkBlack(cfg, guild_id) {
+        /** 过白名单频道 */
+        if (Array.isArray(cfg.whitelist) && cfg.whitelist.length > 0) {
+            return cfg.whitelist.includes(String(guild_id))
+        }
+        /** 过黑名单频道 */
+        if (Array.isArray(cfg.blacklist) && cfg.blacklist.length > 0) {
+            return !cfg.blacklist.includes(String(guild_id))
+        }
+        return true
+    }
+
+    /** 判断子频道黑白名单 */
+    channel_checkBlack(cfg, channel_id) {
+        /** 过白名单子频道 */
+        if (Array.isArray(cfg.channel_whitelist) && cfg.channel_whitelist.length > 0) {
+            return cfg.channel_whitelist.includes(String(channel_id))
+
+        }
+        /** 过黑名单子频道 */
+        if (Array.isArray(cfg.channel_blacklist) && cfg.channel_blacklist.length > 0) {
+            return !cfg.channel_blacklist.includes(String(channel_id))
+        }
+        return true
     }
 
     /** 处理消息、转换格式 */
@@ -224,6 +253,19 @@ export default class guild {
             channel_id: channel_id,
         })
         await redis.set("qg:restart", cfg, { EX: 120 })
+    }
+
+    /** 发送主动消息 解除私信限制 */
+    Sendprivate = async (data) => {
+        const { id, msg } = data
+        const new_msg = {
+            source_guild_id: msg.guild_id,
+            recipient_id: msg.author.id
+        }
+        const _data = await Api.createDirectMessage(id, new_msg)
+        const hi = "QQGuild-plugin：你好~"
+        logger.info(`${this.name} 发送私信消息：${hi}`)
+        await Api.postDirectMessage(id, _data.data.guild_id, { content: hi })
     }
 
     /** 重启后发送主动消息 */

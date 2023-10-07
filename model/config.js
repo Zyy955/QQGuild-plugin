@@ -1,6 +1,9 @@
 import fs from "fs"
 import Yaml from "yaml"
+import chalk from "chalk"
 import guild from "./guild.js"
+import chokidar from "chokidar"
+import common from "../../../lib/common/common.js"
 
 const _path = process.cwd() + "/plugins/QQGuild-plugin/config"
 
@@ -17,7 +20,7 @@ if (fs.existsSync("./plugins/QQGuild-plugin/config.yaml")) {
 if (!fs.existsSync(_path + "/config.yaml")) {
     fs.copyFileSync(_path + "/defSet/config.yaml", _path + "/config.yaml")
 } else {
-    /** 兼容压缩图像 */
+    /** 兼容旧配置文件 */
     let cfg = fs.readFileSync(_path + "/config.yaml", "utf8")
     if (!cfg.match(RegExp("width:"))) {
         cfg = cfg + `\n# 压缩后图片宽度像素大小\nwidth: 1000`
@@ -25,9 +28,11 @@ if (!fs.existsSync(_path + "/config.yaml")) {
     if (!cfg.match(RegExp("quality:"))) {
         cfg = cfg + `\n# 压缩后的图片质量\nquality: 100`
     }
-    
     if (!cfg.match(RegExp("recallQR:"))) {
         cfg = cfg + `\n# 撤回url转换成二维码的时间(秒) 0表示不撤回\nrecallQR: 20`
+    }
+    if (!cfg.match(RegExp("isLog:"))) {
+        cfg = cfg + `\n# 非白名单或黑名单是否显示日志(关闭后会转为debug日志)\nisLog: true`
     }
     fs.writeFileSync(_path + "/config.yaml", cfg, "utf8")
 }
@@ -67,3 +72,28 @@ if (fs.existsSync(_path + "/bot.yaml")) {
     await (new guild).monitor(bot)
 }
 
+/** 热重载~ */
+try {
+    const filePath = _path + "/config.yaml"
+    if (fs.existsSync(filePath)) {
+        const watcher = chokidar.watch(filePath)
+
+        watcher.on("change", async () => {
+            await common.sleep(1500)
+            Bot.qg.cfg = Yaml.parse(fs.readFileSync(filePath, "utf8"))
+            logger.mark("[QQGuild-plugin][配置文件修改] 成功重载")
+        })
+
+        watcher.on("error", (error) => {
+            logger.error(`[QQGuild-plugin]发生错误: ${error}`)
+            watcher.close()
+        })
+    } else {
+        logger.error(`[QQGuild-plugin]文件 ${filePath} 不存在`)
+    }
+} catch (err) {
+    logger.error(err)
+}
+
+logger.info(chalk.hex("#868ECC")(`[QQ频道]QQ频道插件${Bot.qg.guild.ver}初始化...`))
+logger.info("https://gitee.com/Zyy955/QQGuild-plugin")
