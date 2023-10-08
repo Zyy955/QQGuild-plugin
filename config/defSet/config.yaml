@@ -4,10 +4,11 @@ prefix: false
 # 分片转发
 forwar: true
 
-# url白名单，在白名单中的链接不会转为二维码
-whitelist_Url:
-  - 例子1
-  - https://www.Zyy955.com
+# 非白名单或黑名单是否显示日志(关闭后会转为debug日志)
+isLog: true
+
+# 图片压缩阈值
+ImageSize: 2.5
 
 # 压缩后图片宽度像素大小
 width: 1000
@@ -18,11 +19,11 @@ quality: 100
 # 撤回url转换成二维码的时间(秒) 0表示不撤回
 recallQR: 20
 
-# 非白名单或黑名单是否显示日志(关闭后会转为debug日志)
-isLog: true
+# url白名单，在白名单中的链接不会转为二维码
+whitelist_Url:
+  - 例子1
+  - https://www.Zyy955.com
 
-# 优先级只分黑白名单
-# **************************
 # 白名单频道
 whitelist:
 
