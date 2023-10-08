@@ -34,6 +34,9 @@ if (!fs.existsSync(_path + "/config.yaml")) {
     if (!cfg.match(RegExp("isLog:"))) {
         cfg = cfg + `\n# 非白名单或黑名单是否显示日志(关闭后会转为debug日志)\nisLog: true`
     }
+    if (!cfg.match(RegExp("ImageSize:"))) {
+        cfg = cfg + `\n# 图片压缩阈值\nImageSize: 2.5`
+    }
     fs.writeFileSync(_path + "/config.yaml", cfg, "utf8")
 }
 

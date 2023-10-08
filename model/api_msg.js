@@ -240,7 +240,7 @@ export default new class api_msg {
                     let sizeInMB = image?.byteLength / (1024 * 1024)
                     /** 动态导入 */
                     const sharp = (await import("sharp")).default
-                    if (sharp && sizeInMB > 2.5) {
+                    if (sharp && sizeInMB > Number(Bot.qg.cfg.ImageSize)) {
                         await sharp(image)
                             /** 宽度像素 */
                             .resize({ width: Bot.qg.cfg.width })
