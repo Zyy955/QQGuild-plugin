@@ -61,8 +61,13 @@ Group.prototype.sendMsg = async function (content, source, anony = false) {
     /** web等待完成... */
     /** icqq主动消息 */
     else if (!info) {
-        const _info = Bot.gl.get(`qq_${this.gid}`)
-        pickGroup_msg(_info.uin, _info.group_id, content)
+        try {
+            const _info = Bot.gl.get(`qq_${this.gid}`)
+            pickGroup_msg(_info.uin, _info.group_id, content)
+        } catch (err) {
+            /** 调用原始的 sendMsg 方法 */
+            return old.sendMsg.call(this, content, source, anony)
+        }
     }
     else {
         /** 调用原始的 sendMsg 方法 */
@@ -73,19 +78,24 @@ Group.prototype.sendMsg = async function (content, source, anony = false) {
 User.prototype.sendMsg = async function (content, source) {
     /** ICQQ */
     if (!this.client.fl.get(this.uid)) {
-        const info = Bot.fl.get(`qq_${this.uid}`)
-        return pickUser_msg(info.uin, this.uid, content)
+        try {
+            const info = Bot.fl.get(`qq_${this.uid}`)
+            return pickUser_msg(info.uin, this.uid, content)
+        } catch (err) {
+            /** 加个捕获 */
+            return old.User_sendMsg.call(this, content, source)
+        }
     } else {
         return old.User_sendMsg.call(this, content, source)
     }
 }
 
-/** 重新发群主动消息 */
+/** 群主动消息 */
 async function pickGroup_msg(uin, group_id, content) {
     Bot[uin].pickGroup(group_id).sendMsg(content)
 }
 
-/** 重新方法好友主动消息 */
+/** 好友主动消息 */
 async function pickUser_msg(uin, group_id, content) {
     Bot[uin].pickUser(group_id).sendMsg(content)
 }
