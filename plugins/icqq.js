@@ -102,7 +102,7 @@ async function pickUser_msg(uin, group_id, content) {
 
 /** 劫持修改getGroupMemberInfo方法 */
 Bot.getGroupMemberInfo = async function (group_id, id) {
-    if (String(group_id).includes("qg_", "@")) {
+    if (/qg_|@/.test(String(group_id))) {
         const scene = String(group_id).includes("qg_") ? "QQGuild-Bot" : "WeChat-Bot"
         return {
             group_id: group_id,
