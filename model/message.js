@@ -124,6 +124,9 @@ export default new class message {
                 getChatHistory: async (msg_id, num) => {
                     const source = await this.getChatHistory(id, msg.channel_id, msg_id)
                     return [source]
+                },
+                getAvatarUrl: async () => {
+                    return msg.author.avatar
                 }
             }
         } else {

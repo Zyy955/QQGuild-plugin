@@ -10,7 +10,7 @@ import common from "../../../lib/common/common.js"
 import puppeteer from "../../../lib/puppeteer/puppeteer.js"
 
 
-export default new class api_msg {
+export default new class SendMsg {
     /** 处理消息 */
     async message(data, msg, reference) {
         this.reference = reference

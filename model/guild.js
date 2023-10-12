@@ -236,8 +236,8 @@ export default class guild {
     async reply(data, msg, reference) {
         if (msg === "开始执行重启，请稍等...") await this.restart(data)
         /** 处理云崽过来的消息 */
-        const api_msg = (await import("./api_msg.js")).default
-        return await api_msg.message(data, msg, reference)
+        const SendMsg = (await import("./SendMsg.js")).default
+        return await SendMsg.message(data, msg, reference)
     }
 
     /** 保存重启到redis中 */
