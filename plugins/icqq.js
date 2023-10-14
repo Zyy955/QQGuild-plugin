@@ -12,12 +12,6 @@ const old = {
     getGroupMemberInfo: Bot.getGroupMemberInfo
 }
 
-/** 椰奶椰奶！ */
-if (fs.existsSync(process.cwd() + "/plugins/yenai-plugin")) {
-    const yenai_plugin = (await import("./yenai-plugin.js")).default
-    await yenai_plugin.yenai()
-}
-
 /** 劫持修改sendMsg方法 */
 Group.prototype.sendMsg = async function (content, source, anony = false) {
     const info = this._info
