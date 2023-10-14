@@ -48,6 +48,11 @@ git clone --depth=1 https://github.com/Zyy955/QQGuild-plugin ./plugins/QQGuild-p
 #### 安装依赖
 
 ```
+pnpm install -P
+```
+
+`安装失败再用这个：`
+```
 pnpm config set sharp_binary_host "https://npmmirror.com/mirrors/sharp" && pnpm config set sharp_libvips_binary_host "https://npmmirror.com/mirrors/sharp-libvips" && pnpm install -P
 ```
 
