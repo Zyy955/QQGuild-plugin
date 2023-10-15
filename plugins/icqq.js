@@ -1,10 +1,7 @@
 import fs from "fs"
-import lodash from "lodash"
 import { Group } from "icqq/lib/group.js"
 import { User } from "icqq/lib/friend.js"
-import cfg from "../../../lib/config/config.js"
 import common from "../../../lib/common/common.js"
-import PluginsLoader from "../../../lib/plugins/loader.js"
 
 const old = {
     sendMsg: Group.prototype.sendMsg,
@@ -82,32 +79,42 @@ async function pickUser_msg(uin, group_id, content) {
     Bot[uin].pickUser(group_id).sendMsg(content)
 }
 
-/** 劫持修改getGroupMemberInfo方法 */
-Bot.getGroupMemberInfo = async function (group_id, user_id) {
-    if (/qg_|@|wx_/.test(String(group_id))) {
-        const scene = String(group_id).includes("qg_") ? "QQGuild-Bot" : "WeChat-Bot"
-        return {
-            group_id: group_id,
-            user_id,
-            nickname: scene,
-            card: "",
-            sex: "female",
-            age: 6,
-            join_time: "",
-            last_sent_time: "",
-            level: 1,
-            role: "member",
-            title: "",
-            title_expire_time: "",
-            shutup_time: 0,
-            update_time: "",
-            area: "南极洲",
-            rank: "潜水",
+/** 劫持修改getGroupMemberInfo方法 如果ws插件 */
+if (!fs.existsSync(process.cwd() + "/plugins/ws-plugin")) {
+    Bot.getGroupMemberInfo = async function (group_id, user_id) {
+        let result
+        try {
+            result = await old.getGroupMemberInfo.call(this, group_id, user_id)
+        } catch (error) {
+            let nickname
+            if (error.stack.includes('ws-plugin')) {
+                nickname = 'chronocat'
+            } else {
+                nickname = String(group_id).includes("qg_") ? "QQGuild-Bot" : "WeChat-Bot"
+            }
+            result = {
+                group_id,
+                user_id,
+                nickname,
+                card: "",
+                sex: "female",
+                age: 6,
+                join_time: "",
+                last_sent_time: "",
+                level: 1,
+                role: "member",
+                title: "",
+                title_expire_time: "",
+                shutup_time: 0,
+                update_time: "",
+                area: "南极洲",
+                rank: "潜水",
+            }
         }
-    } else {
-        return old.getGroupMemberInfo.call(this, group_id, user_id)
+        return result
     }
 }
+
 
 /** 转发消息 加个捕获而已 */
 common.makeForwardMsg = async function (e, msg = [], dec = '', msgsscr = false) {

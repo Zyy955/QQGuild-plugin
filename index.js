@@ -1,3 +1,4 @@
+import fs from "fs"
 import "./model/config.js"
 import "./plugins/icqq.js"
 import guild from "./model/guild.js"
@@ -215,19 +216,22 @@ let apps = {
 }
 
 /** 监听控制台输入 */
-const rl = createInterface({ input: process.stdin, output: process.stdout })
-rl.on('SIGINT', () => { rl.close(); process.exit() })
-function getInput() {
-    rl.question('', async (input) => {
-        const msg = input.trim()
-        if (/#QQ频道设置.+/gi.test(msg)) {
-            const e = { msg: msg }
-            logger.mark(logger.green(await apps.addBot(e)))
-        }
-        getInput()
-    })
+if (!fs.existsSync(process.cwd() + "/plugins/ws-plugin") && Bot?.uin !== "88888") {
+    const rl = createInterface({ input: process.stdin, output: process.stdout })
+    rl.on('SIGINT', () => { rl.close(); process.exit() })
+    function getInput() {
+        rl.question('', async (input) => {
+            const msg = input.trim()
+            if (/#QQ频道设置.+/gi.test(msg)) {
+                const e = { msg: msg }
+                logger.mark(logger.green(await apps.addBot(e)))
+            }
+            getInput()
+        })
+    }
+    getInput()
 }
-getInput()
+
 
 
 /** 加载一下插件到主体... */
