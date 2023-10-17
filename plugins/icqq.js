@@ -87,7 +87,7 @@ if (!fs.existsSync(process.cwd() + "/plugins/ws-plugin")) {
             result = await old.getGroupMemberInfo.call(this, group_id, user_id)
         } catch (error) {
             let nickname
-            if (error.stack.includes('ws-plugin')) {
+            if (error?.stack?.includes('ws-plugin')) {
                 nickname = 'chronocat'
             } else {
                 nickname = String(group_id).includes("qg_") ? "QQGuild-Bot" : "WeChat-Bot"
