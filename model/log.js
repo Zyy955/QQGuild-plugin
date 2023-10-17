@@ -14,16 +14,21 @@ export default new class log_msg {
         let op_user_id = GuildId ? await Api.op_user_id(msg) : null
 
         /** 获取频道名称 */
-        let Guild_name = GuildId ? (Bot.qg.guilds?.[GuildId].name || GuildId) : GuildId
+        let Guild_name = GuildId ? (Bot.qg.guilds?.[GuildId]?.name || GuildId) : GuildId
         /** 获取子频道名称 */
         let channel_name = GuildId && channel_id ? (Bot.qg.guilds?.[GuildId].channels[channel_id] || channel_id) : channel_id
         /** 操作人名称 */
-        let op_user_name = op_user_id ? ((await Api.guildMember(id, GuildId, op_user_id)).nick || op_user_id) : op_user_id
+        let op_user_name = op_user_id ? (await Api.guildMember(id, GuildId, op_user_id))?.nick || op_user_id : op_user_id
         /** 用户名称 */
-        let user_name = msg.author?.username || msg.message?.author?.username || msg.user?.username
+        let user_name = msg.author?.username || msg.message?.author?.username || msg.user?.username || Bot[id].name
         if (!user_name || user_name === "") {
             let user_Id = msg.author?.id || msg.message?.author.id || msg?.user_id
-            user_name = (await Api.guildMember(id, GuildId, user_Id)).nick
+            try {
+                user_name = (await Api.guildMember(id, GuildId, user_Id)).nick
+            } catch (err) {
+                user_name = "未知"
+                logger.error(err)
+            }
         }
 
         switch (data.eventType) {
@@ -92,7 +97,7 @@ export default new class log_msg {
                 }
                 break
             default:
-                logger.mark(`${this.name} [${id}] 未知事件：`, data)
+                logger.mark(`${this.name} [${id}] 未知事件：`, JSON.stringify(data))
                 break
         }
     }

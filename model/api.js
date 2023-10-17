@@ -249,6 +249,8 @@ export default new class Api {
         else if (msg?.message?.src_guild_id) GuildId = msg.message.src_guild_id
         /** 撤回频道消息 */
         else if (msg?.message?.guild_id) GuildId = msg.message.guild_id
+        /** 其他事件 */
+        else if (msg?.id) GuildId = msg.id
         return GuildId
     }
     /** 从消息体中提取子频道id */
