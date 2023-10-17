@@ -237,7 +237,7 @@ export default new class message {
                     message.push({ type: "face", text: faceValue })
                 } else {
                     /** 前缀处理 */
-                    if (i && Bot.qg.cfg.prefix) {
+                    if (i && Bot.qg.cfg.prefix && !Bot.qg.cfg.prefixBlack.includes(id)) {
                         i = i.trim().replace(/^\//, "#")
                     }
                     raw_message.push(i)

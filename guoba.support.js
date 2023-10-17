@@ -1,5 +1,6 @@
 import fs from "fs"
 import Yaml from "yaml"
+import _Yaml from "./model/yaml.js"
 import common from "../../lib/common/common.js"
 
 /**
@@ -14,6 +15,7 @@ import common from "../../lib/common/common.js"
 // function guildList() {
 const guilds = []
 const channels = []
+const prefixBlack = []
 /** 延迟10秒加载数据，防止某些数据没有加载 */
 setTimeout(async () => {
     while (true) {
@@ -32,6 +34,12 @@ setTimeout(async () => {
         } else {
             await common.sleep(1000)
         }
+    }
+
+    const cfg = new _Yaml("./plugins/QQGuild-plugin/config/bot.yaml")
+    const config = cfg.data()
+    for (const i in config) {
+        prefixBlack.push({ label: Bot[i].name, value: config[i].appID })
     }
 }, 10000)
 
@@ -75,6 +83,18 @@ export function supportGuoba() {
                     label: '前缀转换',
                     bottomHelpMessage: '是否开启前缀“/”转换为“#”',
                     component: 'Switch',
+                },
+                {
+                    field: 'prefixBlack',
+                    label: '前缀转换黑名单',
+                    bottomHelpMessage: '在这里添加机器人的开发者id(appID)则不会转换该机器人的前缀',
+                    component: 'Select',
+                    componentProps: {
+                        allowAdd: true,
+                        allowDel: true,
+                        mode: 'multiple',
+                        options: prefixBlack
+                    }
                 },
                 {
                     field: 'forwar',

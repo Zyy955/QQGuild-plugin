@@ -37,6 +37,9 @@ if (!fs.existsSync(_path + "/config.yaml")) {
     if (!cfg.match(RegExp("ImageSize:"))) {
         cfg = cfg + `\n# 图片压缩阈值\nImageSize: 2.5`
     }
+    if (!cfg.match(RegExp("prefixBlack:"))) {
+        cfg = cfg + `\n# 前缀转换黑名单 在这里添加机器人的开发者id(appID)则不会转换该机器人的前缀\nprefixBlack:\n  - 123456`
+    }
     fs.writeFileSync(_path + "/config.yaml", cfg, "utf8")
 }
 
