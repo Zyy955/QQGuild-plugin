@@ -39,7 +39,7 @@ setTimeout(async () => {
     const cfg = new _Yaml("./plugins/QQGuild-plugin/config/bot.yaml")
     const config = cfg.data()
     for (const i in config) {
-        prefixBlack.push({ label: Bot[i].name, value: config[i].appID })
+        prefixBlack.push({ label: Bot?.[i]?.name || "未知", value: config[i].appID })
     }
 }, 10000)
 
