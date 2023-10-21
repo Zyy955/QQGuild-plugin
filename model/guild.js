@@ -119,50 +119,54 @@ export default class guild {
             }
         }
 
-        /** 米游社主动推送、椰奶状态pro */
-        if (!Bot?.adapter) {
-            Bot.adapter = [Bot.uin]
-            Bot.adapter.push(id)
-        } else {
-            Bot.adapter.push(id)
-            /** 去重防止断连后出现多个重复的id */
-            Bot.adapter = Array.from(new Set(Bot.adapter.map(JSON.stringify))).map(JSON.parse)
-        }
-        Bot[id] = {
-            ...Bot[id],
-            uin: id,
-            [id]: id,
-            nickname: this.name.replace("-测试中", ""),
-            avatar: Bot[id].avatar,
-            stat: { start_time: Date.now() / 1000 },
-            apk: { display: Bot.qg.guild.name, version: Bot.qg.guild.ver },
-            fl: new Map(),
-            gl: new Map(),
-            version: { id: "qg", name: "QQ频道Bot", version: Bot.qg.guild.guild_ver },
-            pickGroup: (groupId) => {
-                const [guild_id, channel_id] = groupId.replace("qg_", "").split('-')
-                const data = {
-                    id: id,
-                    msg: {
-                        guild_id: guild_id,
-                        channel_id: channel_id
-                    },
-                    eventType: "MESSAGE_CREATE"
-                }
-                return {
-                    sendMsg: (reply, reference = false) => {
-                        return this.reply(data, reply, reference)
-                    },
-                    makeForwardMsg: async (forwardMsg) => {
-                        return await message.makeForwardMsg(forwardMsg)
-                    },
+        try {
+            /** 米游社主动推送、椰奶状态pro */
+            if (!Bot?.adapter) {
+                Bot.adapter = [Bot.uin]
+                Bot.adapter.push(id)
+            } else {
+                Bot.adapter.push(id)
+                /** 去重防止断连后出现多个重复的id */
+                Bot.adapter = Array.from(new Set(Bot.adapter.map(JSON.stringify))).map(JSON.parse)
+            }
+            Bot[id] = {
+                ...Bot[id],
+                uin: id,
+                [id]: id,
+                nickname: this.name.replace("-测试中", ""),
+                avatar: Bot[id].avatar,
+                stat: { start_time: Date.now() / 1000 },
+                apk: { display: Bot.qg.guild.name, version: Bot.qg.guild.ver },
+                fl: new Map(),
+                gl: new Map(),
+                version: { id: "qg", name: "QQ频道Bot", version: Bot.qg.guild.guild_ver },
+                pickGroup: (groupId) => {
+                    const [guild_id, channel_id] = groupId.replace("qg_", "").split('-')
+                    const data = {
+                        id: id,
+                        msg: {
+                            guild_id: guild_id,
+                            channel_id: channel_id
+                        },
+                        eventType: "MESSAGE_CREATE"
+                    }
+                    return {
+                        sendMsg: (reply, reference = false) => {
+                            return this.reply(data, reply, reference)
+                        },
+                        makeForwardMsg: async (forwardMsg) => {
+                            return await message.makeForwardMsg(forwardMsg)
+                        },
+                    }
                 }
             }
+            logger.mark(`${logger.green(`[QQ频道]${this.name}(${id})连接成功~`)}`)
+            /** 检测是否重启 */
+            const restart = await redis.get("qg:restart")
+            if (restart) if (JSON.parse(restart).appID === id) await this.init(restart)
+        } catch (error) {
+            logger.error(error)
         }
-        logger.mark(`${logger.green(`[QQ频道]${this.name}(${id})连接成功~`)}`)
-        /** 检测是否重启 */ 
-        const restart = await redis.get("qg:restart")
-        if (restart) if (JSON.parse(restart).appID === id) await this.init(restart)
     }
 
     /** 根据对应事件进行对应处理 */
