@@ -163,10 +163,9 @@ export default new class SendMsg {
                         const Api_msg = { content: "", type: "file_image", image: Uint8Array, log: "{image：base64://...}" }
                         /** 转换的二维码连接是否撤回 */
                         const qr = Number(Bot.qg.cfg.recallQR) || 0
-                        data.qr = qr
                         /** 构建请求参数、打印日志 */
                         const SendMsg = await this.Construct_data(data, Api_msg, false)
-                        await this.SendMsg(data, SendMsg)
+                        await this.SendMsg(data, SendMsg, qr)
                     })
 
                     return "{请扫码查看链接}"
@@ -339,12 +338,12 @@ export default new class SendMsg {
     }
 
     /** 向API发送消息 */
-    async SendMsg(data, SendMsg) {
+    async SendMsg(data, SendMsg, qr = 0) {
 
         /** 随机延迟 */
         await common.sleep(lodash.random(100, 300))
 
-        const { id, msg, qr } = data
+        const { id, msg } = data
         const msg_id = msg.id
         const { guild_id, channel_id } = msg
 
