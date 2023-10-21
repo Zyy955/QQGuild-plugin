@@ -60,6 +60,7 @@ export default new class SendMsg {
     async Api_msg(data, msg, reference) {
         let image = {}
         let content = []
+        const images = []
         const data_msg = data.msg
         /** chatgpt-plugin */
         if (msg?.[0].type === "xml") msg = msg?.[0].msg
@@ -88,11 +89,7 @@ export default new class SendMsg {
                     /** 多图片只保留第一个一起发 其他分片发送 */
                     const img = await this.Base64(i)
                     if (Object.keys(image).length > 0) {
-                        /** 延迟下... */
-                        await common.sleep(200)
-                        /** 构建请求参数、打印日志 */
-                        const SendMsg = await this.Construct_data(data, img, false)
-                        await this.SendMsg(data, SendMsg)
+                        images.push(img)
                     } else {
                         image = img
                     }
@@ -117,7 +114,19 @@ export default new class SendMsg {
         const Api_msg = { content: content, ...image }
         if (!content && content === "" && Object.keys(image).length === 0) return
         const SendMsg = await this.Construct_data(data, Api_msg, reference)
-        return await this.SendMsg(data, SendMsg)
+        const res = await this.SendMsg(data, SendMsg)
+
+        /** 处理分片 */
+        if (images.length > 0) {
+            for (const i of images) {
+                /** 延迟下... */
+                await common.sleep(200)
+                /** 构建请求参数、打印日志 */
+                const SendMsg = await this.Construct_data(data, i, false)
+                await this.SendMsg(data, SendMsg)
+            }
+        }
+        return res
     }
 
     /** 对url进行特殊处理，防止发送失败 */
@@ -151,7 +160,7 @@ export default new class SendMsg {
                         if (err) throw err
                         const base64 = "base64://" + buffer.toString("base64")
                         const Uint8Array = await this.picture_reply(base64, url)
-                        const Api_msg = { content: "", type: "file_image", image: Uint8Array, log: "[图片：base64://...]" }
+                        const Api_msg = { content: "", type: "file_image", image: Uint8Array, log: "{image：base64://...}" }
                         /** 转换的二维码连接是否撤回 */
                         const qr = Number(Bot.qg.cfg.recallQR) || 0
                         data.qr = qr
@@ -171,11 +180,25 @@ export default new class SendMsg {
 
     /** 处理各种牛马格式的图片 返回二进制base64 { type, image: base64, log } TMD */
     async Base64(msg) {
-        let log = `[图片：base64://...]`
+        let log = `{image：base64://...}`
         let type = "file_image"
         let base64
         /** 米游社公告类 */
-        const file = msg.file
+        let file = msg.file
+
+        /** 特殊处理本地文件 */
+        if (typeof file === "string") {
+            if (fs.existsSync(file.replace(/^file:[/]{0,2}/, ""))) {
+                base64 = fs.readFileSync(file.replace(/^file:[/]{0,2}/, ""))
+                return { type, image: base64, log }
+
+            } else if (fs.existsSync(file.replace(/^file:[/]{0,3}/, ""))) {
+                base64 = fs.readFileSync(file.replace(/^file:[/]{0,3}/, ""))
+                return { type, image: base64, log }
+            }
+        }
+
+
         /** 套娃的二进制base64 */
         if (msg.file.type === "Buffer") {
             if (!(msg.file.data instanceof Uint8Array)) {
@@ -197,10 +220,6 @@ export default new class SendMsg {
         else if (typeof file === "string" && msg.url) {
             base64 = new Uint8Array(await (await fetch(msg.url)).arrayBuffer())
         }
-        /** 本地文件转成base64 */
-        else if (typeof file === "string" && fs.existsSync(file.replace(/^file:[/]{0,3}/, ""))) {
-            base64 = fs.readFileSync(file.replace(/^file:[/]{0,3}/, ""))
-        }
         /** 判断url是否为白名单，否则缓存图片转为二进制 */
         else if (typeof file === "string" && /^(https|http):\/\//.test(file)) {
             const urls = Bot.qg.cfg.whitelist_Url
@@ -210,7 +229,7 @@ export default new class SendMsg {
                 /** 下载图片转为base64 */
                 base64 = new Uint8Array(await (await fetch(file)).arrayBuffer())
             } else {
-                log = `[图片：${file}]`
+                log = `{image：${file}}`
                 type = "url"
                 base64 = file
             }
@@ -251,7 +270,7 @@ export default new class SendMsg {
                                 SendMsg.set("file_image", new Blob([data]))
                             })
                     } else {
-                        if (!sharp) logger.error("没有安装 sharp 依赖，请运行 pnpm install -P 或 pnpm i 进行安装依赖~")
+                        if (!sharp) logger.error("[QQ频道]缺少 sharp 依赖，请运行 pnpm install -P 或 pnpm i 进行安装依赖~")
                         /** 如果图片大小不超过2.5MB，那么直接存入SendMsg */
                         SendMsg.set("file_image", new Blob([image]))
                     }
