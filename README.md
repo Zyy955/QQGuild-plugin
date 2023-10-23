@@ -8,6 +8,31 @@ QQ交流群~欢迎加入：`884587317`
 
 ![Visitor Count](https://profile-counter.glitch.me/Zyy955-QQGuild-plugin/count.svg)
 
+
+# 目前此仓库已停止维护...请进行迁移，数据结构并无产生变化，迁移后无需重新配置。
+
+新仓库：[点击跳转Lain-plugin](https://gitee.com/Zyy955/Lain-plugin)
+
+以下方法，请在喵崽根目录执行
+
+#### 方法1(推荐)：
+```
+cd plugins/QQGuild-plugin && node app
+```
+
+#### 方法2(暂未测试，可自行测试)：
+
+启动喵崽后，对机器人发送`#QQ频道迁移`
+
+#### 方法3(手动迁移)：
+```
+cd plugins/QQGuild-plugin
+git remote set-url origin https://gitee.com/Zyy955/Lain-plugin
+git fetch origin
+git reset --hard origin/main
+pnpm install -P
+```
+
 # 使用必读
 
 <details><summary>展开/收起</summary>

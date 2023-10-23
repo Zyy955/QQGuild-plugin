@@ -45,9 +45,36 @@ export class QQGuildBot extends plugin {
                 {
                     reg: /^#(我的|当前)?(id|信息)$/gi,
                     fnc: 'qg_id'
-                }
+                },
+                {
+                    reg: /^#QQ频道迁移$/i,
+                    fnc: "qianyi",
+                    permission: "master"
+                },
             ]
         })
+    }
+
+    async qianyi() {
+        await this.reply("开始迁移...请稍后", true)
+        exec("git remote set-url origin https://gitee.com/Zyy955/Lain-plugin")
+        exec("git fetch origin")
+        exec("git reset --hard origin/main")
+        exec(`pnpm config set sharp_binary_host "https://npmmirror.com/mirrors/sharp"`)
+        exec(`pnpm config set sharp_libvips_binary_host "https://npmmirror.com/mirrors/sharp-libvips"`)
+        exec("pnpm install -P")
+        return await this.reply("QQ频道插件迁移成功，可以重新启动了~", true)
+    }
+
+    exec(cmd) {
+        try {
+            console.log(`执行命令 [${cmd}]\n`)
+            console.log(execSync(cmd).toString())
+            return true
+        } catch (err) {
+            console.error(`错误：执行命令失败：${err}`)
+            return false
+        }
     }
 
     async QQGuildCfg(e) {
@@ -216,7 +243,7 @@ let apps = {
 }
 
 /** 监听控制台输入 */
-if (!fs.existsSync(process.cwd() + "/plugins/ws-plugin") && Bot?.uin !== "88888") {
+if (!fs.existsSync(process.cwd() + "/plugins/ws-plugin") && Bot ?.uin !== "88888") {
     const rl = createInterface({ input: process.stdin, output: process.stdout })
     rl.on('SIGINT', () => { rl.close(); process.exit() })
     function getInput() {
